@@ -21,14 +21,7 @@ type Video = {
 
 const STORAGE_KEY = 'facebook_youtube_videos';
 
-async function fetchFacebookYouTubeVideos(accessToken: string, forceRefresh: boolean = false): Promise<Video[]> {
-  if (!forceRefresh) {
-    const storedVideos = localStorage.getItem(STORAGE_KEY);
-    if (storedVideos) {
-      return JSON.parse(storedVideos);
-    }
-  }
-
+async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
   let allVideos: Video[] = [];
   let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=200`;
 
@@ -57,7 +50,6 @@ async function fetchFacebookYouTubeVideos(accessToken: string, forceRefresh: boo
   }
 
   console.log('Total YouTube videos found:', allVideos.length);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allVideos));
   return allVideos;
 }
 
@@ -96,7 +88,8 @@ export default function Home() {
   const [spotifySongs, setSpotifySongs] = useState<any[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
-  const [forceRefresh, setForceRefresh] = useState(false)
+  // Remove this line
+  // const [forceRefresh, setForceRefresh] = useState(false)
 
   const steps: Step[] = [
     {
@@ -141,7 +134,7 @@ export default function Home() {
     error: errorVideos,
     refetch: refetchVideos
   } = useQuery({
-    queryKey: ['youtubeVideos', forceRefresh],
+    queryKey: ['youtubeVideos'],
     queryFn: async () => {
       try {
         setCurrentSteps(prev => {
@@ -149,7 +142,14 @@ export default function Home() {
           newSteps[1].status = 'loading';
           return newSteps;
         });
-        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string, forceRefresh);
+
+        const storedVideos = localStorage.getItem(STORAGE_KEY);
+        if (storedVideos) {
+          return JSON.parse(storedVideos);
+        }
+
+        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
         return videos;
       } catch (error) {
         console.error('Error fetching YouTube videos:', error);
@@ -157,15 +157,14 @@ export default function Home() {
       }
     },
     enabled: false,
-    select: (data) => {
-      console.log('Data fetched successfully:', data);  // Debugging log
+    onSuccess: (data) => {
+      console.log('Data fetched successfully:', data);
       setCurrentSteps(prev => {
         const newSteps = [...prev];
         newSteps[1].status = 'completed';
         return newSteps;
       });
       setCurrentProgress(50);
-      return data;
     },
     onError: (error) => {
       console.error('Error in YouTube videos query:', error);
@@ -212,13 +211,11 @@ export default function Home() {
   const handleFetchVideos = useCallback(async () => {
     if (session?.provider === 'facebook') {
       try {
-        setForceRefresh(true);
+        localStorage.removeItem(STORAGE_KEY);
         await refetchVideos();
       } catch (error) {
         console.error('Error fetching videos:', error);
         // Optionally, you can show an error message to the user here
-      } finally {
-        setForceRefresh(false);
       }
     }
   }, [session, refetchVideos]);
