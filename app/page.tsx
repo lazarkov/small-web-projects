@@ -1,35 +1,148 @@
-import { getServerSession } from "next-auth/next"
-import Link from "next/link"
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button } from "@/components/ui/button"
-import { LogIn } from 'lucide-react'
-import { authOptions } from "./api/auth/[...nextauth]/route"
+import { Input } from "@/components/ui/input"
+import { Loader2, Trash2, Music, LogIn } from 'lucide-react'
 import { ProgressTracker } from '@/components/progress-tracker'
 
-export default async function Home() {
-  const session = await getServerSession(authOptions)
+type Step = {
+  title: string
+  description: string
+  status: 'pending' | 'loading' | 'completed'
+}
 
-  const steps = [
+async function fetchFacebookYouTubeVideos(accessToken: string) {
+  // Implement Facebook API call to fetch feed and filter YouTube videos
+  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
+  return [
+    { id: '1', title: 'Video 1' },
+    { id: '2', title: 'Video 2' },
+    { id: '3', title: 'Video 3' },
+  ]
+}
+
+async function searchSpotifySongs(accessToken: string, videoTitles: string[]) {
+  // Implement Spotify API call to search for songs
+  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
+  return videoTitles.map(title => ({ id: title, name: title, artist: 'Unknown' }))
+}
+
+async function createSpotifyPlaylist(accessToken: string, playlistName: string, trackUris: string[]) {
+  // Implement Spotify API call to create a playlist
+  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
+  return { id: 'new-playlist-id', name: playlistName }
+}
+
+export default function Home() {
+  const { data: session, status } = useSession()
+  const [spotifySongs, setSpotifySongs] = useState<any[]>([])
+  const [playlistName, setPlaylistName] = useState('')
+  const [currentProgress, setCurrentProgress] = useState(0)
+
+  const steps: Step[] = [
     {
       title: 'Connect Facebook',
       description: 'Sign in with your Facebook account',
-      status: session ? 'completed' : 'pending'
+      status: session?.provider === 'facebook' ? 'completed' : 'pending'
     },
     {
       title: 'Connect Spotify',
       description: 'Link your Spotify account',
-      status: 'pending'
+      status: session?.provider === 'spotify' ? 'completed' : 'pending'
     },
     {
       title: 'Fetch Videos',
-      description: 'We\'ll get your shared YouTube videos',
+      description: 'Getting your shared YouTube videos from Facebook',
       status: 'pending'
     },
     {
       title: 'Create Playlist',
-      description: 'Create a Spotify playlist from your videos',
+      description: 'Finding songs on Spotify and creating your playlist',
       status: 'pending'
     }
   ]
+
+  const [currentSteps, setCurrentSteps] = useState(steps)
+
+  useEffect(() => {
+    if (session?.provider === 'facebook') {
+      setCurrentProgress(25)
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[0].status = 'completed'
+        return newSteps
+      })
+    }
+    if (session?.provider === 'spotify') {
+      setCurrentProgress(50)
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[1].status = 'completed'
+        return newSteps
+      })
+    }
+  }, [session])
+
+  const { data: youtubeVideos, isLoading: isLoadingVideos, refetch: refetchVideos } = useQuery({
+    queryKey: ['youtubeVideos'],
+    queryFn: () => {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[2].status = 'loading'
+        return newSteps
+      })
+      return fetchFacebookYouTubeVideos(session?.accessToken as string)
+    },
+    onSuccess: () => {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[2].status = 'completed'
+        return newSteps
+      })
+      setCurrentProgress(75)
+    },
+    enabled: false, // We'll manually trigger this query
+  })
+
+  const { mutate: searchSongs, isLoading: isSearchingSongs } = useMutation({
+    mutationFn: (videoTitles: string[]) => searchSpotifySongs(session?.accessToken as string, videoTitles),
+    onSuccess: (data) => setSpotifySongs(data),
+  })
+
+  const { mutate: createPlaylist, isLoading: isCreatingPlaylist } = useMutation({
+    mutationFn: (name: string) => {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[3].status = 'loading'
+        return newSteps
+      })
+      return createSpotifyPlaylist(session?.accessToken as string, name, spotifySongs.map(song => song.id))
+    },
+    onSuccess: (data) => {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[3].status = 'completed'
+        return newSteps
+      })
+      setCurrentProgress(100)
+      alert(`Playlist "${data.name}" created successfully!`)
+      setSpotifySongs([])
+      setPlaylistName('')
+    },
+  })
+
+  const handleRemoveSong = (id: string) => {
+    setSpotifySongs(songs => songs.filter(song => song.id !== id))
+  }
+
+  const handleFetchVideos = () => {
+    if (session?.provider === 'facebook') {
+      refetchVideos()
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
@@ -41,19 +154,99 @@ export default async function Home() {
           Turn your Facebook-shared YouTube videos into a Spotify playlist in just a few clicks!
         </p>
         
-        <ProgressTracker steps={steps} currentProgress={session ? 25 : 0} />
+        <ProgressTracker steps={currentSteps} currentProgress={currentProgress} />
         
-        <div className="mt-8">
-          {session ? (
-            <Link href="/dashboard">
-              <Button className="w-full">Continue to Dashboard</Button>
-            </Link>
-          ) : (
-            <Link href="/api/auth/signin/facebook">
-              <Button className="w-full">
-                <LogIn className="mr-2 h-4 w-4" /> Sign In with Facebook
+        <div className="mt-8 space-y-4">
+          {!session && (
+            <Button className="w-full" onClick={() => signIn('facebook')}>
+              <LogIn className="mr-2 h-4 w-4" /> Sign In with Facebook
+            </Button>
+          )}
+          
+          {session?.provider === 'facebook' && (
+            <Button className="w-full" onClick={() => signIn('spotify')}>
+              <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
+            </Button>
+          )}
+
+          {session?.provider === 'spotify' && (
+            <Button 
+              className="w-full"
+              onClick={handleFetchVideos}
+              disabled={isLoadingVideos}
+            >
+              {isLoadingVideos ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Videos
+                </>
+              ) : (
+                'Fetch YouTube Videos'
+              )}
+            </Button>
+          )}
+
+          {youtubeVideos && youtubeVideos.length > 0 && (
+            <Button 
+              onClick={() => searchSongs(youtubeVideos.map(video => video.title))}
+              disabled={isSearchingSongs}
+              className="w-full"
+            >
+              {isSearchingSongs ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
+                </>
+              ) : (
+                'Search Spotify Songs'
+              )}
+            </Button>
+          )}
+
+          {spotifySongs.length > 0 && (
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold mb-2 text-white">Spotify Songs</h2>
+              <ul className="space-y-2">
+                {spotifySongs.map(song => (
+                  <li key={song.id} className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
+                    <span className="text-white">{song.name} - {song.artist}</span>
+                    <Button variant="ghost" size="sm" onClick={() => handleRemoveSong(song.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {spotifySongs.length > 0 && (
+            <div className="flex space-x-2">
+              <Input
+                type="text"
+                placeholder="Enter playlist name"
+                value={playlistName}
+                onChange={(e) => setPlaylistName(e.target.value)}
+                className="flex-grow"
+              />
+              <Button 
+                onClick={() => createPlaylist(playlistName)}
+                disabled={isCreatingPlaylist || !playlistName}
+              >
+                {isCreatingPlaylist ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Playlist
+                  </>
+                ) : (
+                  <>
+                    <Music className="mr-2 h-4 w-4" /> Create Playlist
+                  </>
+                )}
               </Button>
-            </Link>
+            </div>
+          )}
+
+          {session && (
+            <Button className="w-full" onClick={() => signOut()}>
+              Sign Out
+            </Button>
           )}
         </div>
       </div>
