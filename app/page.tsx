@@ -156,7 +156,7 @@ export default function Home() {
         throw error;
       }
     },
-    enabled: !!session?.accessToken,
+    enabled: false,
     select: (data) => {
       console.log('Data fetched successfully:', data);  // Debugging log
       setCurrentSteps(prev => {
@@ -240,6 +240,19 @@ export default function Home() {
       }
     }
   }, [session, youtubeVideos, searchSongs])
+
+  useEffect(() => {
+    const storedVideos = localStorage.getItem(STORAGE_KEY);
+    if (storedVideos) {
+      const parsedVideos = JSON.parse(storedVideos);
+      setCurrentSteps(prev => {
+        const newSteps = [...prev];
+        newSteps[1].status = 'completed';
+        return newSteps;
+      });
+      setCurrentProgress(50);
+    }
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
