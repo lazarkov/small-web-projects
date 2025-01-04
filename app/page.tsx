@@ -88,8 +88,6 @@ export default function Home() {
   const [spotifySongs, setSpotifySongs] = useState<any[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
-  // Remove this line
-  // const [forceRefresh, setForceRefresh] = useState(false)
 
   const steps: Step[] = [
     {
@@ -224,19 +222,22 @@ export default function Home() {
     signIn('spotify')
   }
 
+  const handleInitiatePlaylistCreation = useCallback(() => {
+    if (youtubeVideos && youtubeVideos.length > 0) {
+      searchSongs(youtubeVideos.map(video => video.title));
+    }
+  }, [youtubeVideos, searchSongs]);
+
   useEffect(() => {
     if (session?.provider === 'spotify' && youtubeVideos) {
       setCurrentSteps(prev => {
-        const newSteps = [...prev]
-        newSteps[2].status = 'completed'
-        return newSteps
-      })
-      setCurrentProgress(75)
-      if (youtubeVideos.length > 0) {
-        searchSongs(youtubeVideos.map(video => video.title))
-      }
+        const newSteps = [...prev];
+        newSteps[2].status = 'completed';
+        return newSteps;
+      });
+      setCurrentProgress(75);
     }
-  }, [session, youtubeVideos, searchSongs])
+  }, [session, youtubeVideos]);
 
   useEffect(() => {
     const storedVideos = localStorage.getItem(STORAGE_KEY);
@@ -287,9 +288,22 @@ export default function Home() {
                   </>
                 )}
               </Button>
-              {youtubeVideos && (
+              {currentSteps[2].status !== 'completed' && session?.provider === 'facebook' && (
                 <Button onClick={handleSpotifyConnect}>
                   <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
+                </Button>
+              )}
+              {currentSteps[2].status === 'completed' && !spotifySongs.length && (
+                <Button onClick={handleInitiatePlaylistCreation} disabled={isSearchingSongs}>
+                  {isSearchingSongs ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
+                    </>
+                  ) : (
+                    <>
+                      <Music className="mr-2 h-4 w-4" /> Create Playlist
+                    </>
+                  )}
                 </Button>
               )}
             </div>
