@@ -20,22 +20,35 @@ type Video = {
 }
 
 async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
-  const response = await fetch('https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=100', {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  const data = await response.json();
-  
-  const youtubeVideos = data.data
-    .filter((post: any) => post.attachments && post.attachments.data[0].url && post.attachments.data[0].url.includes('youtube.com'))
-    .map((post: any) => ({
-      id: post.id,
-      title: post.attachments.data[0].title
-    }));
+  let allVideos: Video[] = [];
+  let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=100`;
 
-  console.log('YouTube videos found:', youtubeVideos);
-  return youtubeVideos;
+  while (nextPageUrl) {
+    const response = await fetch(nextPageUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    const data = await response.json();
+
+    const youtubeVideos = data.data
+      .filter((post: any) => post.attachments && post.attachments.data[0].url && post.attachments.data[0].url.includes('youtube.com'))
+      .map((post: any) => ({
+        id: post.id,
+        title: post.attachments.data[0].title
+      }));
+
+    allVideos = [...allVideos, ...youtubeVideos];
+
+    if (data.paging && data.paging.next) {
+      nextPageUrl = data.paging.next;
+    } else {
+      nextPageUrl = '';
+    }
+  }
+
+  console.log('Total YouTube videos found:', allVideos.length);
+  return allVideos;
 }
 
 async function searchSpotifySongs(accessToken: string, videoTitles: string[]) {
@@ -73,21 +86,22 @@ export default function Home() {
   const [spotifySongs, setSpotifySongs] = useState<any[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
+  const [youtubeVideos, setYoutubeVideos] = useState<Video[]>([])
 
   const steps: Step[] = [
     {
       title: 'Connect Facebook',
       description: 'Sign in with your Facebook account',
-      status: session?.provider === 'facebook' ? 'completed' : 'pending'
-    },
-    {
-      title: 'Connect Spotify',
-      description: 'Link your Spotify account',
-      status: session?.provider === 'spotify' ? 'completed' : 'pending'
+      status: 'pending'
     },
     {
       title: 'Fetch Videos',
       description: 'Getting your shared YouTube videos from Facebook',
+      status: 'pending'
+    },
+    {
+      title: 'Connect Spotify',
+      description: 'Link your Spotify account',
       status: 'pending'
     },
     {
@@ -108,38 +122,21 @@ export default function Home() {
         return newSteps
       })
     }
-    if (session?.provider === 'spotify') {
-      setCurrentProgress(50)
+  }, [session])
+
+  const { refetch: refetchVideos, isLoading: isLoadingVideos } = useQuery({
+    queryKey: ['youtubeVideos'],
+    queryFn: () => fetchFacebookYouTubeVideos(session?.accessToken as string),
+    enabled: false,
+    onSuccess: (data) => {
+      setYoutubeVideos(data)
       setCurrentSteps(prev => {
         const newSteps = [...prev]
         newSteps[1].status = 'completed'
         return newSteps
       })
-    }
-  }, [session])
-
-  const { data: youtubeVideos, isLoading: isLoadingVideos, refetch: refetchVideos } = useQuery({
-    queryKey: ['youtubeVideos'],
-    queryFn: () => {
-      setCurrentSteps(prev => {
-        const newSteps = [...prev]
-        newSteps[2].status = 'loading'
-        return newSteps
-      })
-      return fetchFacebookYouTubeVideos(session?.accessToken as string)
+      setCurrentProgress(50)
     },
-    onSuccess: (data) => {
-      setCurrentSteps(prev => {
-        const newSteps = [...prev]
-        newSteps[2].status = 'completed'
-        return newSteps
-      })
-      setCurrentProgress(75)
-      if (data && data.length > 0) {
-        searchSongs(data.map(video => video.title))
-      }
-    },
-    enabled: false, // We'll manually trigger this query
   })
 
   const { mutate: searchSongs, isLoading: isSearchingSongs } = useMutation({
@@ -175,9 +172,32 @@ export default function Home() {
 
   const handleFetchVideos = () => {
     if (session?.provider === 'facebook') {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[1].status = 'loading'
+        return newSteps
+      })
       refetchVideos()
     }
   }
+
+  const handleSpotifyConnect = () => {
+    signIn('spotify')
+  }
+
+  useEffect(() => {
+    if (session?.provider === 'spotify') {
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[2].status = 'completed'
+        return newSteps
+      })
+      setCurrentProgress(75)
+      if (youtubeVideos.length > 0) {
+        searchSongs(youtubeVideos.map(video => video.title))
+      }
+    }
+  }, [session, youtubeVideos])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
@@ -198,13 +218,7 @@ export default function Home() {
             </Button>
           )}
           
-          {session?.provider === 'facebook' && (
-            <Button className="w-full" onClick={() => signIn('spotify')}>
-              <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
-            </Button>
-          )}
-
-          {session?.provider === 'spotify' && (
+          {session?.provider === 'facebook' && currentSteps[1].status !== 'completed' && (
             <Button 
               className="w-full"
               onClick={handleFetchVideos}
@@ -217,6 +231,12 @@ export default function Home() {
               ) : (
                 'Fetch YouTube Videos'
               )}
+            </Button>
+          )}
+
+          {currentSteps[1].status === 'completed' && session?.provider !== 'spotify' && (
+            <Button className="w-full" onClick={handleSpotifyConnect}>
+              <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
             </Button>
           )}
 
