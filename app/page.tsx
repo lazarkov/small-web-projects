@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Trash2, Music, LogIn } from 'lucide-react'
+import { Loader2, Trash2, Music, LogIn, RefreshCw } from 'lucide-react'
 import { ProgressTracker } from '@/components/progress-tracker'
 
 type Step = {
@@ -19,9 +19,18 @@ type Video = {
   title: string
 }
 
-async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
+const STORAGE_KEY = 'facebook_youtube_videos';
+
+async function fetchFacebookYouTubeVideos(accessToken: string, forceRefresh: boolean = false): Promise<Video[]> {
+  if (!forceRefresh) {
+    const storedVideos = localStorage.getItem(STORAGE_KEY);
+    if (storedVideos) {
+      return JSON.parse(storedVideos);
+    }
+  }
+
   let allVideos: Video[] = [];
-  let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=100`;
+  let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=200`;
 
   while (nextPageUrl) {
     const response = await fetch(nextPageUrl, {
@@ -48,6 +57,7 @@ async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]>
   }
 
   console.log('Total YouTube videos found:', allVideos.length);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allVideos));
   return allVideos;
 }
 
@@ -86,7 +96,7 @@ export default function Home() {
   const [spotifySongs, setSpotifySongs] = useState<any[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
-  //const [youtubeVideos, setYoutubeVideos] = useState<Video[]>([])
+  const [forceRefresh, setForceRefresh] = useState(false)
 
   const steps: Step[] = [
     {
@@ -131,7 +141,7 @@ export default function Home() {
     error: errorVideos,
     refetch: refetchVideos
   } = useQuery({
-    queryKey: ['youtubeVideos'],
+    queryKey: ['youtubeVideos', forceRefresh],
     queryFn: async () => {
       try {
         setCurrentSteps(prev => {
@@ -139,15 +149,15 @@ export default function Home() {
           newSteps[1].status = 'loading';
           return newSteps;
         });
-        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string);
+        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string, forceRefresh);
         return videos;
       } catch (error) {
         console.error('Error fetching YouTube videos:', error);
         throw error;
       }
     },
-    enabled: false,
-    onSuccess: (data) => {
+    enabled: !!session?.accessToken,
+    select: (data) => {
       console.log('Data fetched successfully:', data);  // Debugging log
       setCurrentSteps(prev => {
         const newSteps = [...prev];
@@ -155,6 +165,7 @@ export default function Home() {
         return newSteps;
       });
       setCurrentProgress(50);
+      return data;
     },
     onError: (error) => {
       console.error('Error in YouTube videos query:', error);
@@ -198,16 +209,19 @@ export default function Home() {
     setSpotifySongs(songs => songs.filter(song => song.id !== id))
   }
 
-  const handleFetchVideos = async () => {
+  const handleFetchVideos = useCallback(async () => {
     if (session?.provider === 'facebook') {
       try {
+        setForceRefresh(true);
         await refetchVideos();
       } catch (error) {
         console.error('Error fetching videos:', error);
         // Optionally, you can show an error message to the user here
+      } finally {
+        setForceRefresh(false);
       }
     }
-  };
+  }, [session, refetchVideos]);
 
   const handleSpotifyConnect = () => {
     signIn('spotify')
@@ -246,30 +260,34 @@ export default function Home() {
             </Button>
           )}
           
-          {session?.provider === 'facebook' && currentSteps[1].status !== 'completed' && (
-            <Button 
-              className="w-full"
-              onClick={handleFetchVideos}
-              disabled={isLoadingVideos}
-            >
-              {isLoadingVideos ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Videos
-                </>
-              ) : (
-                'Fetch YouTube Videos'
+          {session?.provider === 'facebook' && (
+            <div className="flex space-x-2">
+              <Button 
+                className="flex-grow"
+                onClick={handleFetchVideos}
+                disabled={isLoadingVideos}
+              >
+                {isLoadingVideos ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Videos
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" /> {youtubeVideos ? 'Refresh' : 'Fetch'} YouTube Videos
+                  </>
+                )}
+              </Button>
+              {youtubeVideos && (
+                <Button onClick={handleSpotifyConnect}>
+                  <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
+                </Button>
               )}
-            </Button>
+            </div>
           )}
           {isErrorVideos && (
             <div className="text-red-500 mt-2">
               Error fetching videos. Please try again.
             </div>
-          )}
-          {currentSteps[1].status === 'completed' && session?.provider !== 'spotify' && (
-            <Button className="w-full" onClick={handleSpotifyConnect}>
-              <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
-            </Button>
           )}
 
           {spotifySongs.length > 0 && (
