@@ -86,7 +86,7 @@ export default function Home() {
   const [spotifySongs, setSpotifySongs] = useState<any[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
-  const [youtubeVideos, setYoutubeVideos] = useState<Video[]>([])
+  //const [youtubeVideos, setYoutubeVideos] = useState<Video[]>([])
 
   const steps: Step[] = [
     {
@@ -124,20 +124,48 @@ export default function Home() {
     }
   }, [session])
 
-  const { refetch: refetchVideos, isLoading: isLoadingVideos } = useQuery({
+  const {
+    data: youtubeVideos,
+    isLoading: isLoadingVideos,
+    isError: isErrorVideos,
+    error: errorVideos,
+    refetch: refetchVideos
+  } = useQuery({
     queryKey: ['youtubeVideos'],
-    queryFn: () => fetchFacebookYouTubeVideos(session?.accessToken as string),
+    queryFn: async () => {
+      try {
+        setCurrentSteps(prev => {
+          const newSteps = [...prev];
+          newSteps[1].status = 'loading';
+          return newSteps;
+        });
+        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string);
+        return videos;
+      } catch (error) {
+        console.error('Error fetching YouTube videos:', error);
+        throw error;
+      }
+    },
     enabled: false,
     onSuccess: (data) => {
-      setYoutubeVideos(data)
+      console.log('Data fetched successfully:', data);  // Debugging log
       setCurrentSteps(prev => {
-        const newSteps = [...prev]
-        newSteps[1].status = 'completed'
-        return newSteps
-      })
-      setCurrentProgress(50)
+        const newSteps = [...prev];
+        newSteps[1].status = 'completed';
+        return newSteps;
+      });
+      setCurrentProgress(50);
     },
-  })
+    onError: (error) => {
+      console.error('Error in YouTube videos query:', error);
+      setCurrentSteps(prev => {
+        const newSteps = [...prev];
+        newSteps[1].status = 'pending';
+        return newSteps;
+      });
+      // Optionally, you can show an error message to the user here
+    }
+  });
 
   const { mutate: searchSongs, isLoading: isSearchingSongs } = useMutation({
     mutationFn: (videoTitles: string[]) => searchSpotifySongs(session?.accessToken as string, videoTitles),
@@ -170,23 +198,23 @@ export default function Home() {
     setSpotifySongs(songs => songs.filter(song => song.id !== id))
   }
 
-  const handleFetchVideos = () => {
+  const handleFetchVideos = async () => {
     if (session?.provider === 'facebook') {
-      setCurrentSteps(prev => {
-        const newSteps = [...prev]
-        newSteps[1].status = 'loading'
-        return newSteps
-      })
-      refetchVideos()
+      try {
+        await refetchVideos();
+      } catch (error) {
+        console.error('Error fetching videos:', error);
+        // Optionally, you can show an error message to the user here
+      }
     }
-  }
+  };
 
   const handleSpotifyConnect = () => {
     signIn('spotify')
   }
 
   useEffect(() => {
-    if (session?.provider === 'spotify') {
+    if (session?.provider === 'spotify' && youtubeVideos) {
       setCurrentSteps(prev => {
         const newSteps = [...prev]
         newSteps[2].status = 'completed'
@@ -197,7 +225,7 @@ export default function Home() {
         searchSongs(youtubeVideos.map(video => video.title))
       }
     }
-  }, [session, youtubeVideos])
+  }, [session, youtubeVideos, searchSongs])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
@@ -233,7 +261,11 @@ export default function Home() {
               )}
             </Button>
           )}
-
+          {isErrorVideos && (
+            <div className="text-red-500 mt-2">
+              Error fetching videos. Please try again.
+            </div>
+          )}
           {currentSteps[1].status === 'completed' && session?.provider !== 'spotify' && (
             <Button className="w-full" onClick={handleSpotifyConnect}>
               <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
