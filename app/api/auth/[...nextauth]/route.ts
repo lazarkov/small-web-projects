@@ -9,9 +9,9 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       authorization: {
         params: {
-          scope: "email public_profile user_posts",
-        },
-      },
+          scope: 'email,user_posts'
+        }
+      }
     }),
     SpotifyProvider({
       clientId: process.env.SPOTIFY_CLIENT_ID!,

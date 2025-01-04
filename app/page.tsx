@@ -14,20 +14,52 @@ type Step = {
   status: 'pending' | 'loading' | 'completed'
 }
 
-async function fetchFacebookYouTubeVideos(accessToken: string) {
-  // Implement Facebook API call to fetch feed and filter YouTube videos
-  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
-  return [
-    { id: '1', title: 'Video 1' },
-    { id: '2', title: 'Video 2' },
-    { id: '3', title: 'Video 3' },
-  ]
+type Video = {
+  id: string
+  title: string
+}
+
+async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
+  const response = await fetch('https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=100', {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  const data = await response.json();
+  
+  const youtubeVideos = data.data
+    .filter((post: any) => post.attachments && post.attachments.data[0].url && post.attachments.data[0].url.includes('youtube.com'))
+    .map((post: any) => ({
+      id: post.id,
+      title: post.attachments.data[0].title
+    }));
+
+  console.log('YouTube videos found:', youtubeVideos);
+  return youtubeVideos;
 }
 
 async function searchSpotifySongs(accessToken: string, videoTitles: string[]) {
-  // Implement Spotify API call to search for songs
-  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
-  return videoTitles.map(title => ({ id: title, name: title, artist: 'Unknown' }))
+  const songs = await Promise.all(videoTitles.map(async (title) => {
+    const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(title)}&type=track&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    const data = await response.json();
+    if (data.tracks.items.length > 0) {
+      const track = data.tracks.items[0];
+      return {
+        id: track.id,
+        name: track.name,
+        artist: track.artists[0].name
+      };
+    }
+    return null;
+  }));
+
+  const validSongs = songs.filter(song => song !== null);
+  console.log('Spotify songs found:', validSongs);
+  return validSongs;
 }
 
 async function createSpotifyPlaylist(accessToken: string, playlistName: string, trackUris: string[]) {
@@ -96,13 +128,16 @@ export default function Home() {
       })
       return fetchFacebookYouTubeVideos(session?.accessToken as string)
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setCurrentSteps(prev => {
         const newSteps = [...prev]
         newSteps[2].status = 'completed'
         return newSteps
       })
       setCurrentProgress(75)
+      if (data && data.length > 0) {
+        searchSongs(data.map(video => video.title))
+      }
     },
     enabled: false, // We'll manually trigger this query
   })
@@ -181,22 +216,6 @@ export default function Home() {
                 </>
               ) : (
                 'Fetch YouTube Videos'
-              )}
-            </Button>
-          )}
-
-          {youtubeVideos && youtubeVideos.length > 0 && (
-            <Button 
-              onClick={() => searchSongs(youtubeVideos.map(video => video.title))}
-              disabled={isSearchingSongs}
-              className="w-full"
-            >
-              {isSearchingSongs ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
-                </>
-              ) : (
-                'Search Spotify Songs'
               )}
             </Button>
           )}
