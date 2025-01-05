@@ -5,8 +5,10 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Trash2, Music, LogIn, RefreshCw } from 'lucide-react'
+import { Loader2, Trash2, Music, LogIn, RefreshCw, CheckCircle, X } from 'lucide-react'
 import { ProgressTracker } from '@/components/progress-tracker'
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
 
 type Step = {
   title: string
@@ -17,6 +19,12 @@ type Step = {
 type Video = {
   id: string
   title: string
+}
+
+type Song = {
+  id: string
+  name: string
+  artist: string
 }
 
 const STORAGE_KEY = 'facebook_youtube_videos';
@@ -53,41 +61,114 @@ async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]>
   return allVideos;
 }
 
-async function searchSpotifySongs(accessToken: string, videoTitles: string[]) {
-  const songs = await Promise.all(videoTitles.map(async (title) => {
-    const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(title)}&type=track&limit=1`, {
+async function searchSpotifySongs(
+  accessToken: string, 
+  videoTitles: string[], 
+  onProgress: (current: number, total: number) => void
+): Promise<Song[]> {
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const songs: Song[] = [];
+
+  for (let i = 0; i < videoTitles.length; i++) {
+    const title = videoTitles[i];
+    try {
+      await delay(200); // Minimal delay between searches
+      const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(title)}&type=track&limit=1`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (response.status === 429) {
+        console.log('Rate limit reached. Pausing for 5 seconds...');
+        await delay(5000); // Pause for 5 seconds when rate limit is hit
+        i--; // Retry this iteration
+        continue;
+      }
+      
+      const data = await response.json();
+      if (data.tracks.items.length > 0) {
+        const track = data.tracks.items[0];
+        songs.push({
+          id: track.id,
+          name: track.name,
+          artist: track.artists[0].name
+        });
+      }
+    } catch (error) {
+      console.error(`Error searching for "${title}":`, error);
+    }
+    onProgress(i + 1, videoTitles.length);
+  }
+
+  console.log('Spotify songs found:', songs);
+  return songs;
+}
+
+async function createSpotifyPlaylist(accessToken: string, playlistName: string, trackUris: string[]) {
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
+  try {
+    // Step 1: Get the user's Spotify ID
+    const userResponse = await fetch('https://api.spotify.com/v1/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
     });
-    const data = await response.json();
-    if (data.tracks.items.length > 0) {
-      const track = data.tracks.items[0];
-      return {
-        id: track.id,
-        name: track.name,
-        artist: track.artists[0].name
-      };
+    if (!userResponse.ok) throw new Error('Failed to fetch user data');
+    const userData = await userResponse.json();
+    const userId = userData.id;
+
+    // Step 2: Create a new playlist
+    const createPlaylistResponse = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: playlistName,
+        description: 'Created with YouTube to Spotify Playlist Creator',
+        public: false
+      })
+    });
+    if (!createPlaylistResponse.ok) throw new Error('Failed to create playlist');
+    const playlistData = await createPlaylistResponse.json();
+
+    // Step 3: Add tracks to the playlist (in batches of 100 due to API limitations)
+    const batchSize = 100;
+    for (let i = 0; i < trackUris.length; i += batchSize) {
+      const batch = trackUris.slice(i, i + batchSize);
+      const addTracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uris: batch
+        })
+      });
+      if (!addTracksResponse.ok) throw new Error('Failed to add tracks to playlist');
+      
+      // Add a small delay between batches to avoid rate limiting
+      await delay(1000);
     }
-    return null;
-  }));
 
-  const validSongs = songs.filter(song => song !== null);
-  console.log('Spotify songs found:', validSongs);
-  return validSongs;
-}
-
-async function createSpotifyPlaylist(accessToken: string, playlistName: string, trackUris: string[]) {
-  // Implement Spotify API call to create a playlist
-  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
-  return { id: 'new-playlist-id', name: playlistName }
+    return { id: playlistData.id, name: playlistData.name };
+  } catch (error) {
+    console.error('Error creating Spotify playlist:', error);
+    throw error;
+  }
 }
 
 export default function Home() {
   const { data: session, status } = useSession()
-  const [spotifySongs, setSpotifySongs] = useState<any[]>([])
+  const [youtubeVideos, setYoutubeVideos] = useState<Video[]>([])
+  const [spotifySongs, setSpotifySongs] = useState<Song[]>([])
   const [playlistName, setPlaylistName] = useState('')
   const [currentProgress, setCurrentProgress] = useState(0)
+  const [searchProgress, setSearchProgress] = useState({ current: 0, total: 0 })
 
   const steps: Step[] = [
     {
@@ -126,11 +207,11 @@ export default function Home() {
   }, [session])
 
   const {
-    data: youtubeVideos,
     isLoading: isLoadingVideos,
     isError: isErrorVideos,
     error: errorVideos,
-    refetch: refetchVideos
+    refetch: refetchVideos,
+    isFetching: isFetchingVideos
   } = useQuery({
     queryKey: ['youtubeVideos'],
     queryFn: async () => {
@@ -141,12 +222,8 @@ export default function Home() {
           return newSteps;
         });
 
-        const storedVideos = localStorage.getItem(STORAGE_KEY);
-        if (storedVideos) {
-          return JSON.parse(storedVideos);
-        }
-
         const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string);
+        setYoutubeVideos(videos);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
         return videos;
       } catch (error) {
@@ -171,23 +248,49 @@ export default function Home() {
         newSteps[1].status = 'pending';
         return newSteps;
       });
-      // Optionally, you can show an error message to the user here
     }
   });
 
-  const { mutate: searchSongs, isLoading: isSearchingSongs } = useMutation({
-    mutationFn: (videoTitles: string[]) => searchSpotifySongs(session?.accessToken as string, videoTitles),
-    onSuccess: (data) => setSpotifySongs(data),
-  })
+  const { mutate: searchSongs, isLoading: isSearchingSongs, error: searchError } = useMutation({
+    mutationFn: (videoTitles: string[]) => {
+      setSearchProgress({ current: 0, total: videoTitles.length });
+      return searchSpotifySongs(
+        session?.accessToken as string, 
+        videoTitles,
+        (current, total) => setSearchProgress({ current, total })
+      );
+    },
+    onSuccess: (data) => {
+      setSpotifySongs(data);
+      setCurrentSteps(prev => {
+        const newSteps = [...prev];
+        newSteps[3].status = 'completed';
+        return newSteps;
+      });
+      setCurrentProgress(75);
+    },
+    onError: (error) => {
+      console.error('Error searching songs:', error);
+      setCurrentSteps(prev => {
+        const newSteps = [...prev];
+        newSteps[3].status = 'pending';
+        return newSteps;
+      });
+    },
+  });
 
-  const { mutate: createPlaylist, isLoading: isCreatingPlaylist } = useMutation({
+  const { mutate: createPlaylist, isLoading: isCreatingPlaylist, error: createPlaylistError } = useMutation({
     mutationFn: (name: string) => {
       setCurrentSteps(prev => {
         const newSteps = [...prev]
         newSteps[3].status = 'loading'
         return newSteps
       })
-      return createSpotifyPlaylist(session?.accessToken as string, name, spotifySongs.map(song => song.id))
+      return createSpotifyPlaylist(
+        session?.accessToken as string,
+        name,
+        spotifySongs.map(song => `spotify:track:${song.id}`)
+      )
     },
     onSuccess: (data) => {
       setCurrentSteps(prev => {
@@ -196,11 +299,24 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(100)
-      alert(`Playlist "${data.name}" created successfully!`)
+      alert(`Playlist "${data.name}" created successfully with ${spotifySongs.length} songs!`)
       setSpotifySongs([])
       setPlaylistName('')
     },
+    onError: (error) => {
+      console.error('Error creating playlist:', error)
+      setCurrentSteps(prev => {
+        const newSteps = [...prev]
+        newSteps[3].status = 'pending'
+        return newSteps
+      })
+      alert('Failed to create playlist. Please try again.')
+    }
   })
+
+  const handleRemoveVideo = (id: string) => {
+    setYoutubeVideos(videos => videos.filter(video => video.id !== id))
+  }
 
   const handleRemoveSong = (id: string) => {
     setSpotifySongs(songs => songs.filter(song => song.id !== id))
@@ -209,7 +325,6 @@ export default function Home() {
   const handleFetchVideos = useCallback(async () => {
     if (session?.provider === 'facebook') {
       try {
-        localStorage.removeItem(STORAGE_KEY);
         await refetchVideos();
       } catch (error) {
         console.error('Error fetching videos:', error);
@@ -223,28 +338,34 @@ export default function Home() {
   }
 
   const handleInitiatePlaylistCreation = useCallback(() => {
-    if (youtubeVideos && youtubeVideos.length > 0) {
+    if (youtubeVideos.length > 0) {
       searchSongs(youtubeVideos.map(video => video.title));
+    } else {
+      console.log('No YouTube videos found');
+      // Optionally, you can show a message to the user here
     }
-  }, [youtubeVideos, searchSongs]);
+  }, [searchSongs, youtubeVideos]);
 
   useEffect(() => {
-    if (session?.provider === 'spotify' && youtubeVideos) {
+    if (session?.provider === 'spotify') {
       setCurrentSteps(prev => {
         const newSteps = [...prev];
+        newSteps[0].status = 'completed'; // Ensure Facebook step remains completed
         newSteps[2].status = 'completed';
         return newSteps;
       });
       setCurrentProgress(75);
     }
-  }, [session, youtubeVideos]);
+  }, [session]);
 
   useEffect(() => {
     const storedVideos = localStorage.getItem(STORAGE_KEY);
     if (storedVideos) {
       const parsedVideos = JSON.parse(storedVideos);
+      setYoutubeVideos(parsedVideos);
       setCurrentSteps(prev => {
         const newSteps = [...prev];
+        newSteps[0].status = 'completed'; // Ensure Facebook step remains completed
         newSteps[1].status = 'completed';
         return newSteps;
       });
@@ -276,35 +397,77 @@ export default function Home() {
               <Button 
                 className="flex-grow"
                 onClick={handleFetchVideos}
-                disabled={isLoadingVideos}
+                disabled={isFetchingVideos}
               >
-                {isLoadingVideos ? (
+                {isFetchingVideos ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Videos
                   </>
+                ) : youtubeVideos.length > 0 ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Videos Fetched
+                  </>
                 ) : (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4" /> {youtubeVideos ? 'Refresh' : 'Fetch'} YouTube Videos
+                    <RefreshCw className="mr-2 h-4 w-4" /> Fetch YouTube Videos
                   </>
                 )}
               </Button>
-              {currentSteps[2].status !== 'completed' && session?.provider === 'facebook' && (
+              {currentSteps[2].status !== 'completed' && (
                 <Button onClick={handleSpotifyConnect}>
                   <LogIn className="mr-2 h-4 w-4" /> Connect Spotify
                 </Button>
               )}
-              {currentSteps[2].status === 'completed' && !spotifySongs.length && (
-                <Button onClick={handleInitiatePlaylistCreation} disabled={isSearchingSongs}>
-                  {isSearchingSongs ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
-                    </>
-                  ) : (
-                    <>
-                      <Music className="mr-2 h-4 w-4" /> Create Playlist
-                    </>
-                  )}
-                </Button>
+            </div>
+          )}
+
+          {youtubeVideos.length > 0 && (
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold mb-2 text-white">YouTube Videos</h2>
+              <ScrollArea className="h-[50vh] border rounded-md border-gray-700">
+                <ul className="space-y-2 p-4">
+                  {youtubeVideos.map(video => (
+                    <li key={video.id} className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
+                      <span className="text-white">{video.title}</span>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveVideo(video.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
+          )}
+
+          {session?.provider === 'spotify' && youtubeVideos.length > 0 && !spotifySongs.length && (
+            <div className="space-y-2">
+              <Button 
+                onClick={handleInitiatePlaylistCreation} 
+                disabled={isSearchingSongs} 
+                className="w-full relative"
+              >
+                {isSearchingSongs ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
+                      <div className="text-white text-sm">
+                        {searchProgress.current} / {searchProgress.total} songs found
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Music className="mr-2 h-4 w-4" /> Find Spotify Songs
+                  </>
+                )}
+              </Button>
+              {isSearchingSongs && (
+                <Progress value={(searchProgress.current / searchProgress.total) * 100} className="w-full" />
+              )}
+              {searchError && (
+                <p className="text-red-500 text-sm">
+                  An error occurred while searching for songs. Some songs may not have been found.
+                </p>
               )}
             </div>
           )}
@@ -317,31 +480,34 @@ export default function Home() {
           {spotifySongs.length > 0 && (
             <div className="mb-4">
               <h2 className="text-2xl font-bold mb-2 text-white">Spotify Songs</h2>
-              <ul className="space-y-2">
-                {spotifySongs.map(song => (
-                  <li key={song.id} className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
-                    <span className="text-white">{song.name} - {song.artist}</span>
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveSong(song.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <ScrollArea className="h-[50vh] border rounded-md border-gray-700">
+                <ul className="space-y-2 p-4">
+                  {spotifySongs.map(song => (
+                    <li key={song.id} className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
+                      <span className="text-white">{song.name} - {song.artist}</span>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveSong(song.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
             </div>
           )}
 
           {spotifySongs.length > 0 && (
-            <div className="flex space-x-2">
+            <div className="space-y-4">
               <Input
                 type="text"
                 placeholder="Enter playlist name"
                 value={playlistName}
                 onChange={(e) => setPlaylistName(e.target.value)}
-                className="flex-grow"
+                className="w-full"
               />
               <Button 
                 onClick={() => createPlaylist(playlistName)}
                 disabled={isCreatingPlaylist || !playlistName}
+                className="w-full"
               >
                 {isCreatingPlaylist ? (
                   <>
@@ -357,9 +523,18 @@ export default function Home() {
           )}
 
           {session && (
-            <Button className="w-full" onClick={() => signOut()}>
-              Sign Out
-            </Button>
+            <div className="space-y-2">
+              {session.provider === 'facebook' && (
+                <Button className="w-full" onClick={() => signOut({ callbackUrl: '/' })}>
+                  <LogIn className="mr-2 h-4 w-4" /> Sign Out from Facebook
+                </Button>
+              )}
+              {session.provider === 'spotify' && (
+                <Button className="w-full" onClick={() => signOut({ callbackUrl: '/' })}>
+                  <LogIn className="mr-2 h-4 w-4" /> Sign Out from Spotify
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
