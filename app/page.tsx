@@ -19,6 +19,7 @@ type Step = {
 type Video = {
   id: string
   title: string
+  songFound?: boolean
 }
 
 type Song = {
@@ -66,18 +67,19 @@ async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]>
 
 async function searchSpotifySongs(
   accessToken: string,
-  videoTitles: string[],
+  videos: Video[],
   onProgress: (current: number, total: number) => void,
-): Promise<Song[]> {
+): Promise<{ songs: Song[]; updatedVideos: Video[] }> {
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
   const songs: Song[] = []
+  const updatedVideos = [...videos]
 
-  for (let i = 0; i < videoTitles.length; i++) {
-    const title = videoTitles[i]
+  for (let i = 0; i < videos.length; i++) {
+    const video = videos[i]
     try {
       await delay(200) // Minimal delay between searches
       const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(title)}&type=track&limit=1`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(video.title)}&type=track&limit=1`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -100,15 +102,19 @@ async function searchSpotifySongs(
           name: track.name,
           artist: track.artists[0].name,
         })
+        updatedVideos[i].songFound = true
+      } else {
+        updatedVideos[i].songFound = false
       }
     } catch (error) {
-      console.error(`Error searching for "${title}":`, error)
+      console.error(`Error searching for "${video.title}":`, error)
+      updatedVideos[i].songFound = false
     }
-    onProgress(i + 1, videoTitles.length)
+    onProgress(i + 1, videos.length)
   }
 
   console.log("Spotify songs found:", songs)
-  return songs
+  return { songs, updatedVideos }
 }
 
 async function createSpotifyPlaylist(accessToken: string, playlistName: string, trackUris: string[]) {
@@ -276,14 +282,15 @@ export default function Home() {
     isLoading: isSearchingSongs,
     error: searchError,
   } = useMutation({
-    mutationFn: (videoTitles: string[]) => {
-      setSearchProgress({ current: 0, total: videoTitles.length })
-      return searchSpotifySongs(session?.accessToken as string, videoTitles, (current, total) =>
+    mutationFn: (videos: Video[]) => {
+      setSearchProgress({ current: 0, total: videos.length })
+      return searchSpotifySongs(session?.accessToken as string, videos, (current, total) =>
         setSearchProgress({ current, total }),
       )
     },
     onSuccess: (data) => {
-      setSpotifySongs(data)
+      setSpotifySongs(data.songs)
+      setYoutubeVideos(data.updatedVideos)
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
         newSteps[3].status = "completed"
@@ -354,7 +361,7 @@ export default function Home() {
 
   const handleInitiatePlaylistCreation = useCallback(() => {
     if (youtubeVideos.length > 0) {
-      searchSongs(youtubeVideos.map((video) => video.title))
+      searchSongs(youtubeVideos)
     } else {
       console.log("No YouTube videos found")
       // Optionally, you can show a message to the user here
@@ -370,8 +377,13 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(75)
+
+      // Automatically start playlist creation when connected to Spotify
+      if (youtubeVideos.length > 0 && !spotifySongs.length && !isSearchingSongs) {
+        handleInitiatePlaylistCreation()
+      }
     }
-  }, [session])
+  }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation, isSearchingSongs])
 
   useEffect(() => {
     const storedVideos = localStorage.getItem(STORAGE_KEY)
@@ -433,11 +445,27 @@ export default function Home() {
           {youtubeVideos.length > 0 && (
             <div className="mb-4">
               <h2 className="text-2xl font-bold mb-2 text-white">YouTube Videos</h2>
+              {isSearchingSongs && (
+                <div className="bg-white bg-opacity-20 p-3 rounded mb-2 text-white text-center">
+                  Finding songs: {searchProgress.current} out of {searchProgress.total} videos processed
+                </div>
+              )}
               <ScrollArea className="h-[50vh] border rounded-md border-gray-700">
                 <ul className="space-y-2 p-4">
                   {youtubeVideos.map((video) => (
                     <li key={video.id} className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
-                      <span className="text-white">{video.title}</span>
+                      <div className="flex items-center">
+                        <span className="text-white">{video.title}</span>
+                        {video.songFound !== undefined && (
+                          <span className="ml-2">
+                            {video.songFound ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <X className="h-4 w-4 text-red-500" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                       <Button variant="ghost" size="sm" onClick={() => handleRemoveVideo(video.id)}>
                         <X className="h-4 w-4" />
                       </Button>
