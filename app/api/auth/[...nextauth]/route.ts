@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions } from "next-auth"
+import NextAuth, { type NextAuthOptions } from "next-auth"
 import FacebookProvider from "next-auth/providers/facebook"
 import SpotifyProvider from "next-auth/providers/spotify"
 
@@ -9,9 +9,9 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       authorization: {
         params: {
-          scope: 'email,user_posts'
-        }
-      }
+          scope: "email,user_posts",
+        },
+      },
     }),
     SpotifyProvider({
       clientId: process.env.SPOTIFY_CLIENT_ID!,
@@ -38,10 +38,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === "development",
 }
 
 const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
-
