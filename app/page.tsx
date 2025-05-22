@@ -241,6 +241,11 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(50)
+
+      // Automatically prompt to connect to Spotify if not already connected
+      if (session?.provider === "facebook" && session?.provider !== "spotify") {
+        handleSpotifyConnect()
+      }
     },
     onError: (error) => {
       console.error("Error in YouTube videos query:", error)
@@ -252,16 +257,24 @@ export default function Home() {
     },
   })
 
+  const handleSpotifyConnect = useCallback(() => {
+    signIn("spotify")
+  }, [signIn])
+
   const handleFetchVideos = useCallback(async () => {
     if (session?.provider === "facebook") {
       try {
-        await refetchVideos()
+        const result = await refetchVideos()
+        // After videos are successfully fetched, automatically connect to Spotify
+        if (result && result.data && result.data.length > 0) {
+          handleSpotifyConnect()
+        }
       } catch (error) {
         console.error("Error fetching videos:", error)
         // Optionally, you can show an error message to the user here
       }
     }
-  }, [session, refetchVideos])
+  }, [session, refetchVideos, handleSpotifyConnect])
 
   useEffect(() => {
     if (session?.provider === "facebook") {
@@ -353,10 +366,6 @@ export default function Home() {
 
   const handleRemoveSong = (id: string) => {
     setSpotifySongs((songs) => songs.filter((song) => song.id !== id))
-  }
-
-  const handleSpotifyConnect = () => {
-    signIn("spotify")
   }
 
   const handleInitiatePlaylistCreation = useCallback(() => {
