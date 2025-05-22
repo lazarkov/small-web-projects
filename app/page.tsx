@@ -387,12 +387,28 @@ export default function Home() {
       })
       setCurrentProgress(75)
 
-      // Automatically start playlist creation when connected to Spotify
-      if (youtubeVideos.length > 0 && !spotifySongs.length && !isSearchingSongs) {
+      // Only start playlist creation when connected to Spotify if:
+      // 1. We have YouTube videos
+      // 2. We don't already have Spotify songs
+      // 3. We're not currently searching
+      // 4. We haven't already completed the playlist creation step
+      if (
+        youtubeVideos.length > 0 &&
+        !spotifySongs.length &&
+        !isSearchingSongs &&
+        currentSteps[3].status !== "completed"
+      ) {
         handleInitiatePlaylistCreation()
       }
     }
-  }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation, isSearchingSongs])
+  }, [
+    session,
+    youtubeVideos.length,
+    spotifySongs.length,
+    handleInitiatePlaylistCreation,
+    isSearchingSongs,
+    currentSteps,
+  ])
 
   useEffect(() => {
     const storedVideos = localStorage.getItem(STORAGE_KEY)
