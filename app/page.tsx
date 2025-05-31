@@ -28,7 +28,8 @@ type Song = {
   artist: string
 }
 
-const STORAGE_KEY = "facebook_youtube_videos"
+const STORAGE_KEY_VIDEOS = "facebook_youtube_videos"
+const STORAGE_KEY_SONGS = "spotify_songs"
 
 // Memoized song list item component to prevent unnecessary re-renders
 const SongItem = memo(
@@ -323,7 +324,7 @@ export default function Home() {
 
         const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string)
         setYoutubeVideos(videos)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(videos))
+        localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(videos))
 
         // Schedule Spotify connection after the current execution context
         if (session?.provider === "facebook") {
@@ -405,6 +406,11 @@ export default function Home() {
     onSuccess: (data) => {
       setSpotifySongs(data.songs)
       setYoutubeVideos(data.updatedVideos)
+
+      // Store both videos and songs in localStorage
+      localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(data.updatedVideos))
+      localStorage.setItem(STORAGE_KEY_SONGS, JSON.stringify(data.songs))
+
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
         newSteps[3].status = "completed"
@@ -449,18 +455,7 @@ export default function Home() {
       })
       setCurrentProgress(100)
       alert(`Playlist "${data.name}" created successfully with ${spotifySongs.length} songs!`)
-
-      // Clear stored data and reset state to prevent re-execution on reload
-      localStorage.removeItem(STORAGE_KEY)
-      searchInitiatedRef.current = false
-      setYoutubeVideos([])
-      setSpotifySongs([])
       setPlaylistName("")
-
-      // Reset progress and steps
-      setCurrentProgress(0)
-      setCurrentSteps(steps)
-      setShouldConnectSpotify(false)
     },
     onError: (error) => {
       console.error("Error creating playlist:", error)
@@ -500,30 +495,46 @@ export default function Home() {
       })
       setCurrentProgress(75)
 
-      // Only initiate playlist creation once when Spotify is connected
-      if (youtubeVideos.length > 0 && !searchInitiatedRef.current && !spotifySongs.length) {
+      // Only initiate playlist creation if we don't already have Spotify songs
+      if (youtubeVideos.length > 0 && !searchInitiatedRef.current && spotifySongs.length === 0) {
         searchInitiatedRef.current = true
         handleInitiatePlaylistCreation()
       }
     }
   }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation])
 
+  // Load stored data on component mount
   useEffect(() => {
-    const storedVideos = localStorage.getItem(STORAGE_KEY)
-    // Only load stored videos if we don't already have songs (prevents reload issues)
-    if (storedVideos && spotifySongs.length === 0) {
+    const storedVideos = localStorage.getItem(STORAGE_KEY_VIDEOS)
+    const storedSongs = localStorage.getItem(STORAGE_KEY_SONGS)
+
+    if (storedVideos) {
       const parsedVideos = JSON.parse(storedVideos)
       setYoutubeVideos(parsedVideos)
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
-        newSteps[0].status = "completed" // Ensure Facebook step remains completed
-        newSteps[1].status = "completed"
+        newSteps[0].status = "completed" // Facebook step completed
+        newSteps[1].status = "completed" // Videos fetched
         return newSteps
       })
       setCurrentProgress(50)
       setShouldConnectSpotify(true)
     }
-  }, [spotifySongs.length])
+
+    if (storedSongs) {
+      const parsedSongs = JSON.parse(storedSongs)
+      setSpotifySongs(parsedSongs)
+      setCurrentSteps((prev) => {
+        const newSteps = [...prev]
+        newSteps[0].status = "completed" // Facebook step completed
+        newSteps[1].status = "completed" // Videos fetched
+        newSteps[2].status = "completed" // Spotify connected (will be updated when session loads)
+        newSteps[3].status = "completed" // Songs found
+        return newSteps
+      })
+      setCurrentProgress(75)
+    }
+  }, [])
 
   // Memoize the track URIs to prevent unnecessary recalculations
   const trackUris = useMemo(() => spotifySongs.map((song) => `spotify:track:${song.id}`), [spotifySongs])
@@ -571,8 +582,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Show prominent Spotify connect button when videos are fetched */}
-          {shouldConnectSpotify && session?.provider === "facebook" && (
+          {/* Show prominent Spotify connect button when videos are fetched but no songs yet */}
+          {shouldConnectSpotify && session?.provider === "facebook" && spotifySongs.length === 0 && (
             <Button className="w-full" onClick={handleSpotifyConnect}>
               <LogIn className="mr-2 h-4 w-4" /> Connect Spotify to Continue
             </Button>
@@ -603,7 +614,7 @@ export default function Home() {
             </div>
           )}
 
-          {session?.provider === "spotify" && youtubeVideos.length > 0 && !spotifySongs.length && (
+          {session?.provider === "spotify" && youtubeVideos.length > 0 && spotifySongs.length === 0 && (
             <div className="space-y-2">
               <Button onClick={handleInitiatePlaylistCreation} disabled={isSearchingSongs} className="w-full relative">
                 {isSearchingSongs ? (
