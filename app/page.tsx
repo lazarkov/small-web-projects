@@ -449,8 +449,18 @@ export default function Home() {
       })
       setCurrentProgress(100)
       alert(`Playlist "${data.name}" created successfully with ${spotifySongs.length} songs!`)
+
+      // Clear stored data and reset state to prevent re-execution on reload
+      localStorage.removeItem(STORAGE_KEY)
+      searchInitiatedRef.current = false
+      setYoutubeVideos([])
       setSpotifySongs([])
       setPlaylistName("")
+
+      // Reset progress and steps
+      setCurrentProgress(0)
+      setCurrentSteps(steps)
+      setShouldConnectSpotify(false)
     },
     onError: (error) => {
       console.error("Error creating playlist:", error)
@@ -500,7 +510,8 @@ export default function Home() {
 
   useEffect(() => {
     const storedVideos = localStorage.getItem(STORAGE_KEY)
-    if (storedVideos) {
+    // Only load stored videos if we don't already have songs (prevents reload issues)
+    if (storedVideos && spotifySongs.length === 0) {
       const parsedVideos = JSON.parse(storedVideos)
       setYoutubeVideos(parsedVideos)
       setCurrentSteps((prev) => {
@@ -512,7 +523,7 @@ export default function Home() {
       setCurrentProgress(50)
       setShouldConnectSpotify(true)
     }
-  }, [])
+  }, [spotifySongs.length])
 
   // Memoize the track URIs to prevent unnecessary recalculations
   const trackUris = useMemo(() => spotifySongs.map((song) => `spotify:track:${song.id}`), [spotifySongs])
