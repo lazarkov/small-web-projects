@@ -736,7 +736,7 @@ export default function Home() {
         )}
 
         {/* Playlist Creation */}
-        {currentStep >= 4 && spotifySongs.length > 0 && (
+        {spotifySongs.length > 0 && (
           <div className="space-y-6">
             {/* Playlist Stats */}
             <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
