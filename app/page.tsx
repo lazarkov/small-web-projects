@@ -5,10 +5,22 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Music, LogIn, RefreshCw, CheckCircle, X } from "lucide-react"
-import { ProgressTracker } from "@/components/progress-tracker"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Loader2,
+  Music,
+  LogIn,
+  RefreshCw,
+  CheckCircle,
+  X,
+  Share2,
+  Facebook,
+  AirplayIcon as Spotify,
+} from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Card, CardContent } from "@/components/ui/card"
+import { Footer } from "@/components/footer"
+import { SharePopup } from "@/components/share-popup"
 
 type Step = {
   title: string
@@ -31,51 +43,51 @@ type Song = {
 const STORAGE_KEY_VIDEOS = "facebook_youtube_videos"
 const STORAGE_KEY_SONGS = "spotify_songs"
 
-// Memoized song list item component to prevent unnecessary re-renders
-const SongItem = memo(
-  ({ song, onRemove }: { song: Song; onRemove: (id: string) => void }) => {
+// Memoized playlist item component that shows both video and song
+const PlaylistItem = memo(
+  ({
+    video,
+    song,
+    onRemove,
+  }: {
+    video: Video
+    song?: Song
+    onRemove: (id: string) => void
+  }) => {
     return (
-      <li className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
-        <span className="text-white">
-          {song.name} - {song.artist}
-        </span>
-        <Button variant="ghost" size="sm" onClick={() => onRemove(song.id)}>
-          <X className="h-4 w-4" />
-        </Button>
-      </li>
-    )
-  },
-  (prevProps, nextProps) => prevProps.song.id === nextProps.song.id,
-)
-SongItem.displayName = "SongItem"
+      <li className="flex items-center justify-between bg-white bg-opacity-10 p-3 rounded-lg backdrop-blur-sm transition-all hover:bg-opacity-20">
+        <div className="flex items-center w-full">
+          <div className="flex-1">
+            <p className="text-white font-medium">{video.title}</p>
+          </div>
 
-// Memoized video list item component to prevent unnecessary re-renders
-const VideoItem = memo(
-  ({ video, onRemove }: { video: Video; onRemove: (id: string) => void }) => {
-    return (
-      <li className="flex items-center justify-between bg-white bg-opacity-20 p-2 rounded">
-        <div className="flex items-center">
-          <span className="text-white">{video.title}</span>
-          {video.songFound !== undefined && (
-            <span className="ml-2">
-              {video.songFound ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <X className="h-4 w-4 text-red-500" />
-              )}
-            </span>
-          )}
+          {song ? (
+            <div className="flex items-center ml-4 pl-4 border-l border-white border-opacity-20">
+              <div className="flex-1">
+                <p className="text-white font-medium">{song.name}</p>
+                <p className="text-white text-opacity-70 text-sm">{song.artist}</p>
+              </div>
+              <CheckCircle className="h-4 w-4 text-green-400 ml-2 flex-shrink-0" />
+            </div>
+          ) : video.songFound === false ? (
+            <div className="flex items-center ml-4 pl-4 border-l border-white border-opacity-20">
+              <p className="text-white text-opacity-50 italic">No match found</p>
+              <X className="h-4 w-4 text-red-400 ml-2 flex-shrink-0" />
+            </div>
+          ) : null}
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onRemove(video.id)}>
+        <Button variant="ghost" size="sm" onClick={() => onRemove(video.id)} className="ml-2">
           <X className="h-4 w-4" />
         </Button>
       </li>
     )
   },
   (prevProps, nextProps) =>
-    prevProps.video.id === nextProps.video.id && prevProps.video.songFound === nextProps.video.songFound,
+    prevProps.video.id === nextProps.video.id &&
+    prevProps.video.songFound === nextProps.video.songFound &&
+    prevProps.song?.id === nextProps.song?.id,
 )
-VideoItem.displayName = "VideoItem"
+PlaylistItem.displayName = "PlaylistItem"
 
 async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
   let allVideos: Video[] = []
@@ -228,58 +240,59 @@ export default function Home() {
   const [playlistName, setPlaylistName] = useState("")
   const [currentProgress, setCurrentProgress] = useState(0)
   const [searchProgress, setSearchProgress] = useState({ current: 0, total: 0 })
-  const [visibleSongs, setVisibleSongs] = useState<Song[]>([])
-  const [visibleVideos, setVisibleVideos] = useState<Video[]>([])
+  const [visibleItems, setVisibleItems] = useState<{ video: Video; song?: Song }[]>([])
+  const [showSharePopup, setShowSharePopup] = useState(false)
+  const [createdPlaylistId, setCreatedPlaylistId] = useState("")
+  const [createdPlaylistName, setCreatedPlaylistName] = useState("")
+
   // Flag to prevent automatic Spotify connection
   const [shouldConnectSpotify, setShouldConnectSpotify] = useState(false)
 
   // Pagination for better performance with large lists
   const PAGE_SIZE = 50
-  const [songPage, setSongPage] = useState(1)
-  const [videoPage, setVideoPage] = useState(1)
+  const [page, setPage] = useState(1)
 
   // Add a ref to track if we've already initiated the search to prevent duplicate calls:
   const searchInitiatedRef = useRef(false)
 
-  // Update visible songs when the full list changes or page changes
+  // Current step for the progress indicator
+  const [currentStep, setCurrentStep] = useState(0)
+  const totalSteps = 5
+
+  // Update visible items when videos or songs change
   useEffect(() => {
+    const items = youtubeVideos.map((video) => {
+      const matchingSong = spotifySongs.find(
+        (_, index) => index < youtubeVideos.length && youtubeVideos[index].id === video.id,
+      )
+      return { video, song: matchingSong }
+    })
+
     const start = 0
-    const end = Math.min(spotifySongs.length, PAGE_SIZE)
-    setVisibleSongs(spotifySongs.slice(start, end))
-    setSongPage(1)
-  }, [spotifySongs])
+    const end = Math.min(items.length, PAGE_SIZE)
+    setVisibleItems(items.slice(start, end))
+    setPage(1)
+  }, [youtubeVideos, spotifySongs])
 
-  // Update visible videos when the full list changes or page changes
-  useEffect(() => {
-    const start = 0
-    const end = Math.min(youtubeVideos.length, PAGE_SIZE)
-    setVisibleVideos(youtubeVideos.slice(start, end))
-    setVideoPage(1)
-  }, [youtubeVideos])
-
-  // Load more songs when scrolling
-  const loadMoreSongs = useCallback(() => {
-    const nextPage = songPage + 1
+  // Load more items when scrolling
+  const loadMoreItems = useCallback(() => {
+    const nextPage = page + 1
     const start = (nextPage - 1) * PAGE_SIZE
-    const end = Math.min(spotifySongs.length, nextPage * PAGE_SIZE)
 
-    if (start < spotifySongs.length) {
-      setVisibleSongs((prev) => [...prev, ...spotifySongs.slice(start, end)])
-      setSongPage(nextPage)
+    const items = youtubeVideos.map((video) => {
+      const matchingSong = spotifySongs.find(
+        (_, index) => index < youtubeVideos.length && youtubeVideos[index].id === video.id,
+      )
+      return { video, song: matchingSong }
+    })
+
+    const end = Math.min(items.length, nextPage * PAGE_SIZE)
+
+    if (start < items.length) {
+      setVisibleItems((prev) => [...prev, ...items.slice(start, end)])
+      setPage(nextPage)
     }
-  }, [songPage, spotifySongs])
-
-  // Load more videos when scrolling
-  const loadMoreVideos = useCallback(() => {
-    const nextPage = videoPage + 1
-    const start = (nextPage - 1) * PAGE_SIZE
-    const end = Math.min(youtubeVideos.length, nextPage * PAGE_SIZE)
-
-    if (start < youtubeVideos.length) {
-      setVisibleVideos((prev) => [...prev, ...youtubeVideos.slice(start, end)])
-      setVideoPage(nextPage)
-    }
-  }, [videoPage, youtubeVideos])
+  }, [page, youtubeVideos, spotifySongs])
 
   const steps: Step[] = [
     {
@@ -322,6 +335,9 @@ export default function Home() {
           return newSteps
         })
 
+        // Update progress step
+        setCurrentStep(1)
+
         const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string)
         setYoutubeVideos(videos)
         localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(videos))
@@ -348,6 +364,7 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(50)
+      setCurrentStep(2) // Move to Spotify connection step
 
       // We're now handling the Spotify connection directly in the queryFn
       setShouldConnectSpotify(true)
@@ -364,7 +381,7 @@ export default function Home() {
 
   const handleSpotifyConnect = useCallback(() => {
     signIn("spotify")
-  }, [signIn])
+  }, [])
 
   const handleFetchVideos = useCallback(async () => {
     if (session?.provider === "facebook") {
@@ -386,6 +403,7 @@ export default function Home() {
         newSteps[0].status = "completed"
         return newSteps
       })
+      setCurrentStep(1) // Move to fetching videos step
 
       // Automatically fetch videos when connected to Facebook
       handleFetchVideos()
@@ -399,6 +417,7 @@ export default function Home() {
   } = useMutation({
     mutationFn: (videos: Video[]) => {
       setSearchProgress({ current: 0, total: videos.length })
+      setCurrentStep(3) // Move to searching songs step
       return searchSpotifySongs(session?.accessToken as string, videos, (current, total) =>
         setSearchProgress({ current, total }),
       )
@@ -417,6 +436,7 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(75)
+      setCurrentStep(4) // Move to create playlist step
       searchInitiatedRef.current = false // Reset the ref
     },
     onError: (error) => {
@@ -454,8 +474,10 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(100)
-      alert(`Playlist "${data.name}" created successfully with ${spotifySongs.length} songs!`)
-      setPlaylistName("")
+      setCurrentStep(5) // Move to share step
+      setCreatedPlaylistId(data.id)
+      setCreatedPlaylistName(data.name)
+      setShowSharePopup(true)
     },
     onError: (error) => {
       console.error("Error creating playlist:", error)
@@ -468,13 +490,20 @@ export default function Home() {
     },
   })
 
-  const handleRemoveVideo = useCallback((id: string) => {
-    setYoutubeVideos((videos) => videos.filter((video) => video.id !== id))
-  }, [])
-
-  const handleRemoveSong = useCallback((id: string) => {
-    setSpotifySongs((songs) => songs.filter((song) => song.id !== id))
-  }, [])
+  const handleRemoveItem = useCallback(
+    (id: string) => {
+      setYoutubeVideos((videos) => videos.filter((video) => video.id !== id))
+      // Also remove the corresponding song if it exists
+      setSpotifySongs((songs) => {
+        const videoIndex = youtubeVideos.findIndex((v) => v.id === id)
+        if (videoIndex >= 0 && videoIndex < songs.length) {
+          return songs.filter((_, index) => index !== videoIndex)
+        }
+        return songs
+      })
+    },
+    [youtubeVideos],
+  )
 
   const handleInitiatePlaylistCreation = useCallback(() => {
     if (youtubeVideos.length > 0) {
@@ -494,6 +523,7 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(75)
+      setCurrentStep(3) // Move to searching songs step
 
       // Only initiate playlist creation if we don't already have Spotify songs
       if (youtubeVideos.length > 0 && !searchInitiatedRef.current && spotifySongs.length === 0) {
@@ -518,6 +548,7 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(50)
+      setCurrentStep(2) // Move to Spotify connection step
       setShouldConnectSpotify(true)
     }
 
@@ -533,6 +564,7 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(75)
+      setCurrentStep(4) // Move to create playlist step
     }
   }, [])
 
@@ -542,171 +574,265 @@ export default function Home() {
   // Stats for display
   const songStats = useMemo(() => {
     const totalSongs = spotifySongs.length
-    return { totalSongs }
-  }, [spotifySongs.length])
+    const totalVideos = youtubeVideos.length
+    const matchedSongs = youtubeVideos.filter((v) => v.songFound).length
+    return { totalSongs, totalVideos, matchedSongs }
+  }, [spotifySongs.length, youtubeVideos])
+
+  // Progress steps for the UI
+  const progressSteps = [
+    { label: "Start", icon: <LogIn className="h-4 w-4" /> },
+    { label: "Facebook", icon: <Facebook className="h-4 w-4" /> },
+    { label: "Spotify", icon: <Spotify className="h-4 w-4" /> },
+    { label: "Search", icon: <RefreshCw className="h-4 w-4" /> },
+    { label: "Create", icon: <Music className="h-4 w-4" /> },
+    { label: "Share", icon: <Share2 className="h-4 w-4" /> },
+  ]
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center text-white mb-8">YouTube to Spotify Playlist Creator</h1>
-        <p className="text-center text-white mb-8">
-          Turn your Facebook-shared YouTube videos into a Spotify playlist in just a few clicks!
-        </p>
-
-        <ProgressTracker steps={currentSteps} currentProgress={currentProgress} />
-
-        <div className="mt-8 space-y-4">
-          {!session && (
-            <Button className="w-full" onClick={() => signIn("facebook")}>
-              <LogIn className="mr-2 h-4 w-4" /> Sign In with Facebook
-            </Button>
-          )}
-
-          {session?.provider === "facebook" && (
-            <div className="flex space-x-2">
-              <Button className="flex-grow" onClick={handleFetchVideos} disabled={isFetchingVideos}>
-                {isFetchingVideos ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Videos
-                  </>
-                ) : youtubeVideos.length > 0 ? (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Videos Fetched
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" /> Fetch YouTube Videos
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Show prominent Spotify connect button when videos are fetched but no songs yet */}
-          {shouldConnectSpotify && session?.provider === "facebook" && spotifySongs.length === 0 && (
-            <Button className="w-full" onClick={handleSpotifyConnect}>
-              <LogIn className="mr-2 h-4 w-4" /> Connect Spotify to Continue
-            </Button>
-          )}
-
-          {youtubeVideos.length > 0 && (
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold mb-2 text-white">YouTube Videos</h2>
-              {isSearchingSongs && (
-                <div className="bg-white bg-opacity-20 p-3 rounded mb-2 text-white text-center">
-                  Finding songs: {searchProgress.current} out of {searchProgress.total} videos processed
-                </div>
-              )}
-              <ScrollArea className="h-[50vh] border rounded-md border-gray-700">
-                <ul className="space-y-2 p-4">
-                  {visibleVideos.map((video) => (
-                    <VideoItem key={video.id} video={video} onRemove={handleRemoveVideo} />
-                  ))}
-                  {visibleVideos.length < youtubeVideos.length && (
-                    <li className="text-center p-2 text-white">
-                      <Button variant="ghost" onClick={loadMoreVideos}>
-                        Load more videos
-                      </Button>
-                    </li>
-                  )}
-                </ul>
-              </ScrollArea>
-            </div>
-          )}
-
-          {session?.provider === "spotify" && youtubeVideos.length > 0 && spotifySongs.length === 0 && (
-            <div className="space-y-2">
-              <Button onClick={handleInitiatePlaylistCreation} disabled={isSearchingSongs} className="w-full relative">
-                {isSearchingSongs ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Searching Songs
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
-                      <div className="text-white text-sm">
-                        {searchProgress.current} / {searchProgress.total} songs found
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Music className="mr-2 h-4 w-4" /> Find Spotify Songs
-                  </>
-                )}
-              </Button>
-              {isSearchingSongs && (
-                <Progress value={(searchProgress.current / searchProgress.total) * 100} className="w-full" />
-              )}
-              {searchError && (
-                <p className="text-red-500 text-sm">
-                  An error occurred while searching for songs. Some songs may not have been found.
-                </p>
-              )}
-            </div>
-          )}
-          {isErrorVideos && <div className="text-red-500 mt-2">Error fetching videos. Please try again.</div>}
-
-          {spotifySongs.length > 0 && (
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold mb-2 text-white">Spotify Songs ({songStats.totalSongs} songs found)</h2>
-              <ScrollArea className="h-[50vh] border rounded-md border-gray-700">
-                <ul className="space-y-2 p-4">
-                  {visibleSongs.map((song) => (
-                    <SongItem key={song.id} song={song} onRemove={handleRemoveSong} />
-                  ))}
-                  {visibleSongs.length < spotifySongs.length && (
-                    <li className="text-center p-2 text-white">
-                      <Button variant="ghost" onClick={loadMoreSongs}>
-                        Load more songs
-                      </Button>
-                    </li>
-                  )}
-                </ul>
-              </ScrollArea>
-            </div>
-          )}
-
-          {spotifySongs.length > 0 && (
-            <div className="space-y-4">
-              <Input
-                type="text"
-                placeholder="Enter playlist name"
-                value={playlistName}
-                onChange={(e) => setPlaylistName(e.target.value)}
-                className="w-full"
-              />
-              <Button
-                onClick={() => createPlaylist(playlistName)}
-                disabled={isCreatingPlaylist || !playlistName}
-                className="w-full"
-              >
-                {isCreatingPlaylist ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Playlist
-                  </>
-                ) : (
-                  <>
-                    <Music className="mr-2 h-4 w-4" /> Create Playlist
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
+    <div className="min-h-screen flex flex-col bg-gradient-to-r from-purple-900 via-pink-800 to-red-900">
+      {/* Header */}
+      <header className="py-6 px-4 bg-black bg-opacity-30 backdrop-blur-sm">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">YouTube to Spotify</h1>
           {session && (
-            <div className="space-y-2">
-              {session.provider === "facebook" && (
-                <Button className="w-full" onClick={() => signOut({ callbackUrl: "/" })}>
-                  <LogIn className="mr-2 h-4 w-4" /> Sign Out from Facebook
-                </Button>
-              )}
-              {session.provider === "spotify" && (
-                <Button className="w-full" onClick={() => signOut({ callbackUrl: "/" })}>
-                  <LogIn className="mr-2 h-4 w-4" /> Sign Out from Spotify
-                </Button>
-              )}
-            </div>
+            <Button variant="ghost" onClick={() => signOut({ callbackUrl: "/" })} className="text-white">
+              Sign Out
+            </Button>
           )}
         </div>
-      </div>
-    </main>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            {progressSteps.map((step, index) => (
+              <div
+                key={step.label}
+                className={`flex flex-col items-center ${index <= currentStep ? "text-white" : "text-gray-400"}`}
+              >
+                <div
+                  className={`
+                  w-10 h-10 rounded-full flex items-center justify-center mb-1
+                  ${
+                    index < currentStep
+                      ? "bg-green-500"
+                      : index === currentStep
+                        ? "bg-blue-500 animate-pulse"
+                        : "bg-gray-700"
+                  }
+                `}
+                >
+                  {index < currentStep ? <CheckCircle className="h-5 w-5" /> : step.icon}
+                </div>
+                <span className="text-xs hidden md:block">{step.label}</span>
+              </div>
+            ))}
+          </div>
+          <Progress value={(currentStep / (progressSteps.length - 1)) * 100} className="h-2" />
+        </div>
+
+        {/* Welcome Screen */}
+        {!session && currentStep === 0 && (
+          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+            <CardContent className="pt-6 flex flex-col items-center text-center">
+              <h2 className="text-3xl font-bold mb-4">Create Spotify Playlists from YouTube Videos</h2>
+              <p className="mb-8 max-w-2xl">
+                Turn your Facebook-shared YouTube videos into a Spotify playlist in just a few clicks! We'll find
+                matching songs on Spotify and create a playlist for you.
+              </p>
+              <Button size="lg" onClick={() => signIn("facebook")} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Facebook className="mr-2 h-5 w-5" /> Start with Facebook
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Facebook Connected, Fetching Videos */}
+        {session?.provider === "facebook" && currentStep === 1 && (
+          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center mb-4">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
+                <h2 className="text-xl font-bold">Facebook Connected</h2>
+              </div>
+
+              {isFetchingVideos ? (
+                <div className="flex flex-col items-center py-8">
+                  <Loader2 className="h-12 w-12 animate-spin mb-4" />
+                  <p className="text-lg">Fetching your YouTube videos from Facebook...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-8">
+                  <Button
+                    size="lg"
+                    onClick={handleFetchVideos}
+                    disabled={isFetchingVideos}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <RefreshCw className="mr-2 h-5 w-5" /> Fetch YouTube Videos
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Connect Spotify */}
+        {shouldConnectSpotify && session?.provider === "facebook" && currentStep === 2 && (
+          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center mb-4">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
+                <h2 className="text-xl font-bold">Videos Found: {youtubeVideos.length}</h2>
+              </div>
+
+              <div className="flex flex-col items-center py-8">
+                <p className="text-lg mb-6">Now connect your Spotify account to continue</p>
+                <Button size="lg" onClick={handleSpotifyConnect} className="bg-green-600 hover:bg-green-700 text-white">
+                  <Spotify className="mr-2 h-5 w-5" /> Connect Spotify
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Searching Songs */}
+        {session?.provider === "spotify" && currentStep === 3 && (
+          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center mb-4">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
+                <h2 className="text-xl font-bold">Spotify Connected</h2>
+              </div>
+
+              {isSearchingSongs ? (
+                <div className="flex flex-col items-center py-8">
+                  <Loader2 className="h-12 w-12 animate-spin mb-4" />
+                  <p className="text-lg mb-4">Searching for songs on Spotify...</p>
+                  <div className="w-full max-w-md mb-2">
+                    <Progress value={(searchProgress.current / searchProgress.total) * 100} className="h-2" />
+                  </div>
+                  <p className="text-sm">
+                    {searchProgress.current} of {searchProgress.total} videos processed
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-8">
+                  <Button
+                    size="lg"
+                    onClick={handleInitiatePlaylistCreation}
+                    disabled={isSearchingSongs}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Playlist Creation */}
+        {currentStep >= 4 && spotifySongs.length > 0 && (
+          <div className="space-y-6">
+            {/* Playlist Stats */}
+            <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                  <h2 className="text-2xl font-bold mb-2 md:mb-0">Your Playlist</h2>
+                  <div className="flex space-x-4">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-300">Videos</p>
+                      <p className="text-xl font-bold">{songStats.totalVideos}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-300">Matches</p>
+                      <p className="text-xl font-bold">{songStats.matchedSongs}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-300">Success Rate</p>
+                      <p className="text-xl font-bold">
+                        {songStats.totalVideos > 0
+                          ? Math.round((songStats.matchedSongs / songStats.totalVideos) * 100)
+                          : 0}
+                        %
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Playlist Items */}
+            <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Playlist Items</h3>
+                  <div className="flex items-center">
+                    <Input
+                      type="text"
+                      placeholder="Enter playlist name"
+                      value={playlistName}
+                      onChange={(e) => setPlaylistName(e.target.value)}
+                      className="mr-2 bg-white bg-opacity-10 border-gray-700 text-white"
+                    />
+                    <Button
+                      onClick={() => createPlaylist(playlistName)}
+                      disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isCreatingPlaylist ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
+                        </>
+                      ) : (
+                        <>
+                          <Music className="mr-2 h-4 w-4" /> Create
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-[50vh] pr-4">
+                  <ul className="space-y-2">
+                    {visibleItems.map((item) => (
+                      <PlaylistItem
+                        key={item.video.id}
+                        video={item.video}
+                        song={item.song}
+                        onRemove={handleRemoveItem}
+                      />
+                    ))}
+                    {visibleItems.length < youtubeVideos.length && (
+                      <li className="text-center p-2">
+                        <Button variant="ghost" onClick={loadMoreItems} className="text-white">
+                          Load more items
+                        </Button>
+                      </li>
+                    )}
+                  </ul>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Share Popup */}
+        {showSharePopup && (
+          <SharePopup
+            playlistId={createdPlaylistId}
+            playlistName={createdPlaylistName}
+            onClose={() => setShowSharePopup(false)}
+          />
+        )}
+      </main>
+
+      {/* Footer */}
+      <Footer />
+    </div>
   )
 }
