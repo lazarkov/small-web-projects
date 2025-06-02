@@ -735,8 +735,8 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Playlist Creation */}
-        {spotifySongs.length > 0 && (
+        {/* Playlist Creation - Show after videos are fetched */}
+        {youtubeVideos.length > 0 && (
           <div className="space-y-6">
             {/* Playlist Stats */}
             <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
@@ -771,30 +771,32 @@ export default function Home() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium">Playlist Items</h3>
-                  <div className="flex items-center">
-                    <Input
-                      type="text"
-                      placeholder="Enter playlist name"
-                      value={playlistName}
-                      onChange={(e) => setPlaylistName(e.target.value)}
-                      className="mr-2 bg-white bg-opacity-10 border-gray-700 text-white"
-                    />
-                    <Button
-                      onClick={() => createPlaylist(playlistName)}
-                      disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isCreatingPlaylist ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
-                        </>
-                      ) : (
-                        <>
-                          <Music className="mr-2 h-4 w-4" /> Create
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {spotifySongs.length > 0 && (
+                    <div className="flex items-center">
+                      <Input
+                        type="text"
+                        placeholder="Enter playlist name"
+                        value={playlistName}
+                        onChange={(e) => setPlaylistName(e.target.value)}
+                        className="mr-2 bg-white bg-opacity-10 border-gray-700 text-white"
+                      />
+                      <Button
+                        onClick={() => createPlaylist(playlistName)}
+                        disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isCreatingPlaylist ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
+                          </>
+                        ) : (
+                          <>
+                            <Music className="mr-2 h-4 w-4" /> Create
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <ScrollArea className="h-[50vh] pr-4">
