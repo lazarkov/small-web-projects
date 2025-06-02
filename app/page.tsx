@@ -708,18 +708,19 @@ export default function Home() {
                 <h2 className="text-xl font-bold">Spotify Connected</h2>
               </div>
 
-              {isSearchingSongs ? (
                 <div className="flex flex-col items-center py-8">
                   <Loader2 className="h-12 w-12 animate-spin mb-4" />
-                  <p className="text-lg mb-4">Searching for songs on Spotify...</p>
+                  <p className="text-lg mb-2">Searching for songs on Spotify...</p>
+                  <p className="text-md mb-4 font-semibold">
+                    {searchProgress.current}/{searchProgress.total} Songs Searched
+                  </p>
                   <div className="w-full max-w-md mb-2">
                     <Progress value={(searchProgress.current / searchProgress.total) * 100} className="h-2" />
                   </div>
-                  <p className="text-sm">
+                  <p className="text-sm text-gray-300">
                     {searchProgress.current} of {searchProgress.total} videos processed
                   </p>
                 </div>
-              ) : (
                 <div className="flex flex-col items-center py-8">
                   <Button
                     size="lg"
@@ -730,7 +731,6 @@ export default function Home() {
                     <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
                   </Button>
                 </div>
-              )}
             </CardContent>
           </Card>
         )}
