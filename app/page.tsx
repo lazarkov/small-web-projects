@@ -259,6 +259,9 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(0)
   const totalSteps = 5
 
+  // Add a new state variable `isSearchingSpotifySongs` after the existing state declarations:
+  const [isSearchingSpotifySongs, setIsSearchingSpotifySongs] = useState(false)
+
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
@@ -422,6 +425,14 @@ export default function Home() {
         setSearchProgress({ current, total }),
       )
     },
+    onMutate: () => {
+      // This runs immediately when the mutation is called, before the mutationFn
+      setCurrentSteps((prev) => {
+        const newSteps = [...prev]
+        newSteps[3].status = "loading"
+        return newSteps
+      })
+    },
     onSuccess: (data) => {
       setSpotifySongs(data.songs)
       setYoutubeVideos(data.updatedVideos)
@@ -438,6 +449,7 @@ export default function Home() {
       setCurrentProgress(75)
       setCurrentStep(4) // Move to create playlist step
       searchInitiatedRef.current = false // Reset the ref
+      setIsSearchingSpotifySongs(false) // Reset search state
     },
     onError: (error) => {
       console.error("Error searching songs:", error)
@@ -447,6 +459,7 @@ export default function Home() {
         return newSteps
       })
       searchInitiatedRef.current = false // Reset the ref
+      setIsSearchingSpotifySongs(false) // Reset search state
     },
   })
 
@@ -506,13 +519,13 @@ export default function Home() {
   )
 
   const handleInitiatePlaylistCreation = useCallback(() => {
-    if (youtubeVideos.length > 0) {
+    if (youtubeVideos.length > 0 && !isSearchingSpotifySongs) {
+      setIsSearchingSpotifySongs(true)
       searchSongs(youtubeVideos)
     } else {
-      console.log("No YouTube videos found")
-      // Optionally, you can show a message to the user here
+      console.log("No YouTube videos found or search already in progress")
     }
-  }, [searchSongs, youtubeVideos])
+  }, [searchSongs, youtubeVideos, isSearchingSpotifySongs])
 
   // Separate effect for handling Spotify session
   useEffect(() => {
@@ -708,6 +721,7 @@ export default function Home() {
                 <h2 className="text-xl font-bold">Spotify Connected</h2>
               </div>
 
+              {isSearchingSpotifySongs ? (
                 <div className="flex flex-col items-center py-8">
                   <Loader2 className="h-12 w-12 animate-spin mb-4" />
                   <p className="text-lg mb-2">Searching for songs on Spotify...</p>
@@ -721,16 +735,18 @@ export default function Home() {
                     {searchProgress.current} of {searchProgress.total} videos processed
                   </p>
                 </div>
+              ) : (
                 <div className="flex flex-col items-center py-8">
                   <Button
                     size="lg"
                     onClick={handleInitiatePlaylistCreation}
-                    disabled={isSearchingSongs}
+                    disabled={isSearchingSpotifySongs}
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
                   </Button>
                 </div>
+              )}
             </CardContent>
           </Card>
         )}
