@@ -535,13 +535,20 @@ export default function Home() {
         newSteps[2].status = "completed"
         return newSteps
       })
-      setCurrentProgress(75)
-      setCurrentStep(3) // Move to searching songs step
 
-      // Only initiate playlist creation if we don't already have Spotify songs
-      if (youtubeVideos.length > 0 && !searchInitiatedRef.current && spotifySongs.length === 0) {
-        searchInitiatedRef.current = true
-        handleInitiatePlaylistCreation()
+      // If we already have songs, move to create playlist step
+      if (spotifySongs.length > 0) {
+        setCurrentProgress(75)
+        setCurrentStep(4) // Move to create playlist step
+      } else {
+        setCurrentProgress(75)
+        setCurrentStep(3) // Move to searching songs step
+
+        // Only initiate playlist creation if we don't already have Spotify songs
+        if (youtubeVideos.length > 0 && !searchInitiatedRef.current && spotifySongs.length === 0) {
+          searchInitiatedRef.current = true
+          handleInitiatePlaylistCreation()
+        }
       }
     }
   }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation])
@@ -561,23 +568,24 @@ export default function Home() {
         return newSteps
       })
       setCurrentProgress(50)
-      setCurrentStep(2) // Move to Spotify connection step
       setShouldConnectSpotify(true)
-    }
 
-    if (storedSongs) {
-      const parsedSongs = JSON.parse(storedSongs)
-      setSpotifySongs(parsedSongs)
-      setCurrentSteps((prev) => {
-        const newSteps = [...prev]
-        newSteps[0].status = "completed" // Facebook step completed
-        newSteps[1].status = "completed" // Videos fetched
-        newSteps[2].status = "completed" // Spotify connected (will be updated when session loads)
-        newSteps[3].status = "completed" // Songs found
-        return newSteps
-      })
-      setCurrentProgress(75)
-      setCurrentStep(4) // Move to create playlist step
+      if (storedSongs) {
+        const parsedSongs = JSON.parse(storedSongs)
+        setSpotifySongs(parsedSongs)
+        setCurrentSteps((prev) => {
+          const newSteps = [...prev]
+          newSteps[0].status = "completed" // Facebook step completed
+          newSteps[1].status = "completed" // Videos fetched
+          newSteps[2].status = "completed" // Spotify connected (will be updated when session loads)
+          newSteps[3].status = "completed" // Songs found
+          return newSteps
+        })
+        setCurrentProgress(75)
+        setCurrentStep(4) // Move to create playlist step
+      } else {
+        setCurrentStep(2) // Move to Spotify connection step
+      }
     }
   }, [])
 
