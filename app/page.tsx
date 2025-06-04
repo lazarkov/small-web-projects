@@ -217,9 +217,13 @@ const PlaylistItem = memo(
 )
 PlaylistItem.displayName = "PlaylistItem"
 
-async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]> {
+async function fetchFacebookYouTubeVideos(
+  accessToken: string,
+  onProgress?: (current: number, total: number) => void,
+): Promise<Video[]> {
   let allVideos: Video[] = []
   let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=200`
+  let totalProcessed = 0
 
   while (nextPageUrl) {
     const response = await fetch(nextPageUrl, {
@@ -240,6 +244,12 @@ async function fetchFacebookYouTubeVideos(accessToken: string): Promise<Video[]>
       }))
 
     allVideos = [...allVideos, ...youtubeVideos]
+    totalProcessed += data.data.length
+
+    // Report progress if callback is provided
+    if (onProgress) {
+      onProgress(allVideos.length, totalProcessed)
+    }
 
     if (data.paging && data.paging.next) {
       nextPageUrl = data.paging.next
@@ -421,6 +431,8 @@ export default function Home() {
   // Add a new state variable `isSearchingSpotifySongs` after the existing state declarations:
   const [isSearchingSpotifySongs, setIsSearchingSpotifySongs] = useState(false)
 
+  const [facebookFetchProgress, setFacebookFetchProgress] = useState({ current: 0, total: 0 })
+
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
@@ -495,8 +507,11 @@ export default function Home() {
 
         // Update progress step
         setCurrentStep(1)
+        setFacebookFetchProgress({ current: 0, total: 0 })
 
-        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string)
+        const videos = await fetchFacebookYouTubeVideos(session?.accessToken as string, (current, total) =>
+          setFacebookFetchProgress({ current, total }),
+        )
         setYoutubeVideos(videos)
         localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(videos))
 
@@ -829,7 +844,15 @@ export default function Home() {
               {isFetchingVideos ? (
                 <div className="flex flex-col items-center py-8">
                   <Loader2 className="h-12 w-12 animate-spin mb-4" />
-                  <p className="text-lg">Fetching your YouTube videos from Facebook...</p>
+                  <p className="text-lg mb-2">Fetching your YouTube videos from Facebook...</p>
+                  {facebookFetchProgress.current > 0 && (
+                    <>
+                      <p className="text-md mb-4 font-semibold">
+                        {facebookFetchProgress.current} YouTube videos found so far
+                      </p>
+                      <p className="text-sm text-gray-300">Processed {facebookFetchProgress.total} posts</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-8">
@@ -953,15 +976,15 @@ export default function Home() {
                       <Button
                         onClick={() => createPlaylist(playlistName)}
                         disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isCreatingPlaylist ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
                           </>
                         ) : (
                           <>
-                            <Music className="mr-2 h-4 w-4" /> Create
+                            <Music className="mr-2 h-4 w-4" /> Create Playlist
                           </>
                         )}
                       </Button>
