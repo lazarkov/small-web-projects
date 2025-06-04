@@ -38,6 +38,7 @@ type Song = {
   id: string
   name: string
   artist: string
+  facebook_video_id: string
 }
 
 const STORAGE_KEY_VIDEOS = "facebook_youtube_videos"
@@ -309,6 +310,7 @@ async function searchSpotifySongs(
             id: bestMatch.id,
             name: bestMatch.name,
             artist: bestMatch.artists[0].name,
+            facebook_video_id: video.id, // Add the Facebook video ID
           })
           updatedVideos[i].songFound = true
           console.log(
@@ -422,9 +424,7 @@ export default function Home() {
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
-      const matchingSong = spotifySongs.find(
-        (_, index) => index < youtubeVideos.length && youtubeVideos[index].id === video.id,
-      )
+      const matchingSong = spotifySongs.find((song) => song.facebook_video_id === video.id)
       return { video, song: matchingSong }
     })
 
@@ -440,9 +440,7 @@ export default function Home() {
     const start = (nextPage - 1) * PAGE_SIZE
 
     const items = youtubeVideos.map((video) => {
-      const matchingSong = spotifySongs.find(
-        (_, index) => index < youtubeVideos.length && youtubeVideos[index].id === video.id,
-      )
+      const matchingSong = spotifySongs.find((song) => song.facebook_video_id === video.id)
       return { video, song: matchingSong }
     })
 
@@ -660,20 +658,11 @@ export default function Home() {
     },
   })
 
-  const handleRemoveItem = useCallback(
-    (id: string) => {
-      setYoutubeVideos((videos) => videos.filter((video) => video.id !== id))
-      // Also remove the corresponding song if it exists
-      setSpotifySongs((songs) => {
-        const videoIndex = youtubeVideos.findIndex((v) => v.id === id)
-        if (videoIndex >= 0 && videoIndex < songs.length) {
-          return songs.filter((_, index) => index !== videoIndex)
-        }
-        return songs
-      })
-    },
-    [youtubeVideos],
-  )
+  const handleRemoveItem = useCallback((id: string) => {
+    setYoutubeVideos((videos) => videos.filter((video) => video.id !== id))
+    // Remove the corresponding song by matching facebook_video_id
+    setSpotifySongs((songs) => songs.filter((song) => song.facebook_video_id !== id))
+  }, [])
 
   const handleInitiatePlaylistCreation = useCallback(() => {
     if (youtubeVideos.length > 0 && !isSearchingSpotifySongs) {
