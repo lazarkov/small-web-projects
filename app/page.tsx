@@ -43,6 +43,133 @@ type Song = {
 const STORAGE_KEY_VIDEOS = "facebook_youtube_videos"
 const STORAGE_KEY_SONGS = "spotify_songs"
 
+// Sanitizer method to clean up video titles before Spotify search
+function sanitizeVideoTitle(title: string): string {
+  let cleanTitle = title
+
+  // Remove content within parentheses and brackets (including the parentheses/brackets themselves)
+  // This regex properly matches opening and closing parentheses/brackets
+  cleanTitle = cleanTitle.replace(/$$[^)]*$$/g, "")
+  cleanTitle = cleanTitle.replace(/\[[^\]]*\]/g, "")
+
+  // Remove common music video related words (case insensitive)
+  const wordsToRemove = [
+    "official music video",
+    "official video",
+    "official audio",
+    "official visual",
+    "official version",
+    "music video",
+    "official",
+    "video",
+    "audio",
+    "visual",
+    "version",
+    "live",
+    "remix",
+    "remaster",
+    "remastered",
+    "hd",
+    "hq",
+    "lyrics",
+    "lyric video",
+    "fan-made",
+    "fanmade",
+    "cover",
+    "acoustic",
+    "instrumental",
+    "karaoke",
+    "clean version",
+    "explicit",
+    "radio edit",
+    "extended",
+    "full version",
+    "complete",
+    "studio version",
+  ]
+
+  wordsToRemove.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, "gi")
+    cleanTitle = cleanTitle.replace(regex, "")
+  })
+
+  // Remove all special characters except spaces and alphanumeric
+  cleanTitle = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, "")
+
+  // Remove multiple spaces and trim
+  cleanTitle = cleanTitle.replace(/\s+/g, " ")
+  cleanTitle = cleanTitle.trim()
+
+  return cleanTitle
+}
+
+// Accuracy method to calculate similarity between original and found song
+function calculateSimilarity(original: string, found: string): number {
+  // Convert to lowercase and remove special characters for comparison
+  const normalize = (str: string) =>
+    str
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .trim()
+
+  const originalNormalized = normalize(original)
+  const foundNormalized = normalize(found)
+
+  // If either string is empty, return 0
+  if (!originalNormalized || !foundNormalized) return 0
+
+  // Calculate Levenshtein distance
+  const levenshteinDistance = (str1: string, str2: string): number => {
+    const matrix = []
+
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i]
+    }
+
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j
+    }
+
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1, // insertion
+            matrix[i - 1][j] + 1, // deletion
+          )
+        }
+      }
+    }
+
+    return matrix[str2.length][str1.length]
+  }
+
+  const distance = levenshteinDistance(originalNormalized, foundNormalized)
+  const maxLength = Math.max(originalNormalized.length, foundNormalized.length)
+
+  // Calculate similarity percentage
+  const similarity = ((maxLength - distance) / maxLength) * 100
+
+  // Also check for word overlap
+  const originalWords = originalNormalized.split(/\s+/)
+  const foundWords = foundNormalized.split(/\s+/)
+
+  let commonWords = 0
+  originalWords.forEach((word) => {
+    if (foundWords.some((foundWord) => foundWord.includes(word) || word.includes(foundWord))) {
+      commonWords++
+    }
+  })
+
+  const wordSimilarity = (commonWords / Math.max(originalWords.length, foundWords.length)) * 100
+
+  // Return the higher of the two similarity scores
+  return Math.max(similarity, wordSimilarity)
+}
+
 // Memoized playlist item component that shows both video and song
 const PlaylistItem = memo(
   ({
@@ -137,8 +264,13 @@ async function searchSpotifySongs(
     const video = videos[i]
     try {
       await delay(200) // Minimal delay between searches
+
+      // Sanitize the video title before searching
+      const sanitizedTitle = sanitizeVideoTitle(video.title)
+      console.log(`Original: "${video.title}" -> Sanitized: "${sanitizedTitle}"`)
+
       const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(video.title)}&type=track&limit=1`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(sanitizedTitle)}&type=track&limit=5`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -155,15 +287,40 @@ async function searchSpotifySongs(
 
       const data = await response.json()
       if (data.tracks.items.length > 0) {
-        const track = data.tracks.items[0]
-        songs.push({
-          id: track.id,
-          name: track.name,
-          artist: track.artists[0].name,
-        })
-        updatedVideos[i].songFound = true
+        // Check each track for accuracy
+        let bestMatch = null
+        let bestAccuracy = 0
+
+        for (const track of data.tracks.items) {
+          const trackFullName = `${track.name} ${track.artists[0].name}`
+          const accuracy = calculateSimilarity(sanitizedTitle, trackFullName)
+
+          console.log(`Comparing "${sanitizedTitle}" with "${trackFullName}": ${accuracy.toFixed(1)}% accuracy`)
+
+          if (accuracy > bestAccuracy) {
+            bestAccuracy = accuracy
+            bestMatch = track
+          }
+        }
+
+        // Only add to playlist if accuracy is above 60%
+        if (bestMatch && bestAccuracy >= 60) {
+          songs.push({
+            id: bestMatch.id,
+            name: bestMatch.name,
+            artist: bestMatch.artists[0].name,
+          })
+          updatedVideos[i].songFound = true
+          console.log(
+            `✅ Added "${bestMatch.name}" by ${bestMatch.artists[0].name} (${bestAccuracy.toFixed(1)}% match)`,
+          )
+        } else {
+          updatedVideos[i].songFound = false
+          console.log(`❌ No suitable match found for "${video.title}" (best: ${bestAccuracy.toFixed(1)}%)`)
+        }
       } else {
         updatedVideos[i].songFound = false
+        console.log(`❌ No tracks found for "${sanitizedTitle}"`)
       }
     } catch (error) {
       console.error(`Error searching for "${video.title}":`, error)
