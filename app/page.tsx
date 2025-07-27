@@ -5,20 +5,8 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Loader2,
-  Music,
-  LogIn,
-  RefreshCw,
-  CheckCircle,
-  X,
-  Share2,
-  Facebook,
-  AirplayIcon as Spotify,
-} from "lucide-react"
+import { Loader2, Music, RefreshCw, CheckCircle, X, Facebook, AirplayIcon as Spotify, ArrowDown } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardContent } from "@/components/ui/card"
 import { Footer } from "@/components/footer"
 import { SharePopup } from "@/components/share-popup"
 
@@ -171,51 +159,74 @@ function calculateSimilarity(original: string, found: string): number {
   return Math.max(similarity, wordSimilarity)
 }
 
-// Memoized playlist item component that shows both video and song
-const PlaylistItem = memo(
+// Song card component for grid display
+const SongCard = memo(
   ({
-    video,
     song,
+    video,
     onRemove,
+    index,
   }: {
-    video: Video
     song?: Song
+    video: Video
     onRemove: (id: string) => void
+    index: number
   }) => {
-    return (
-      <li className="flex items-center justify-between bg-white bg-opacity-10 p-3 rounded-lg backdrop-blur-sm transition-all hover:bg-opacity-20">
-        <div className="flex items-center w-full">
-          <div className="flex-1">
-            <p className="text-white font-medium">{video.title}</p>
-          </div>
+    const colors = [
+      "from-pink-400 to-pink-600",
+      "from-green-400 to-green-600",
+      "from-red-400 to-red-600",
+      "from-orange-400 to-orange-600",
+      "from-purple-400 to-purple-600",
+      "from-blue-400 to-blue-600",
+      "from-yellow-400 to-yellow-600",
+      "from-indigo-400 to-indigo-600",
+    ]
 
+    const colorClass = colors[index % colors.length]
+
+    return (
+      <div
+        className={`relative bg-gradient-to-br ${colorClass} rounded-lg p-4 aspect-square flex flex-col justify-between text-white shadow-lg hover:shadow-xl transition-all duration-300 group`}
+      >
+        <button
+          onClick={() => onRemove(video.id)}
+          className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-opacity-70"
+        >
+          <X className="h-3 w-3" />
+        </button>
+
+        <div className="flex-1 flex items-center justify-center">
           {song ? (
-            <div className="flex items-center ml-4 pl-4 border-l border-white border-opacity-20">
-              <div className="flex-1">
-                <p className="text-white font-medium">{song.name}</p>
-                <p className="text-white text-opacity-70 text-sm">{song.artist}</p>
+            <div className="text-center">
+              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-2 mx-auto">
+                <Music className="h-4 w-4" />
               </div>
-              <CheckCircle className="h-4 w-4 text-green-400 ml-2 flex-shrink-0" />
+              <CheckCircle className="h-4 w-4 text-green-300 mx-auto" />
             </div>
           ) : video.songFound === false ? (
-            <div className="flex items-center ml-4 pl-4 border-l border-white border-opacity-20">
-              <p className="text-white text-opacity-50 italic">No match found</p>
-              <X className="h-4 w-4 text-red-400 ml-2 flex-shrink-0" />
+            <div className="text-center">
+              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-2 mx-auto">
+                <Music className="h-4 w-4" />
+              </div>
+              <X className="h-4 w-4 text-red-300 mx-auto" />
             </div>
-          ) : null}
+          ) : (
+            <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <Music className="h-4 w-4" />
+            </div>
+          )}
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onRemove(video.id)} className="ml-2">
-          <X className="h-4 w-4" />
-        </Button>
-      </li>
+
+        <div className="text-xs">
+          <p className="font-semibold truncate mb-1">{song ? song.name : video.title}</p>
+          {song && <p className="opacity-80 truncate">{song.artist}</p>}
+        </div>
+      </div>
     )
   },
-  (prevProps, nextProps) =>
-    prevProps.video.id === nextProps.video.id &&
-    prevProps.video.songFound === nextProps.video.songFound &&
-    prevProps.song?.id === nextProps.song?.id,
 )
-PlaylistItem.displayName = "PlaylistItem"
+SongCard.displayName = "SongCard"
 
 async function fetchFacebookYouTubeVideos(
   accessToken: string,
@@ -432,6 +443,16 @@ export default function Home() {
   const [isSearchingSpotifySongs, setIsSearchingSpotifySongs] = useState(false)
 
   const [facebookFetchProgress, setFacebookFetchProgress] = useState({ current: 0, total: 0 })
+
+  // Background gradients for each step
+  const stepBackgrounds = [
+    "bg-gradient-to-br from-orange-300 via-yellow-300 to-orange-400", // Start - Orange/Yellow
+    "bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400", // Facebook - Blue to Pink
+    "bg-gradient-to-br from-green-400 via-teal-400 to-blue-400", // Spotify - Green to Blue
+    "bg-gradient-to-br from-purple-400 via-pink-400 to-red-400", // Search - Purple to Red
+    "bg-gradient-to-br from-pink-300 via-rose-300 to-pink-400", // Create - Pink
+    "bg-gradient-to-br from-emerald-400 via-green-400 to-teal-400", // Share - Green
+  ]
 
   // Update visible items when videos or songs change
   useEffect(() => {
@@ -761,24 +782,29 @@ export default function Home() {
     return { totalSongs, totalVideos, matchedSongs }
   }, [spotifySongs.length, youtubeVideos])
 
-  // Progress steps for the UI
-  const progressSteps = [
-    { label: "Start", icon: <LogIn className="h-4 w-4" /> },
-    { label: "Facebook", icon: <Facebook className="h-4 w-4" /> },
-    { label: "Spotify", icon: <Spotify className="h-4 w-4" /> },
-    { label: "Search", icon: <RefreshCw className="h-4 w-4" /> },
-    { label: "Create", icon: <Music className="h-4 w-4" /> },
-    { label: "Share", icon: <Share2 className="h-4 w-4" /> },
-  ]
-
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-r from-purple-900 via-pink-800 to-red-900">
+    <div className={`min-h-screen flex flex-col transition-all duration-1000 ${stepBackgrounds[currentStep]}`}>
       {/* Header */}
-      <header className="py-6 px-4 bg-black bg-opacity-30 backdrop-blur-sm">
+      <header className="py-6 px-4 lg:px-8">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">YouTube to Spotify</h1>
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+              <Music className="h-4 w-4 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-black">YouTube to Spotify</h1>
+          </div>
+          <nav className="hidden md:flex space-x-8">
+            <span className="text-black font-medium">Stories</span>
+            <span className="text-black font-medium">Listen</span>
+            <span className="text-black font-medium">Team</span>
+            <span className="text-black font-medium">Tools</span>
+          </nav>
           {session && (
-            <Button variant="ghost" onClick={() => signOut({ callbackUrl: "/" })} className="text-white">
+            <Button
+              variant="ghost"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-black hover:bg-black hover:bg-opacity-10"
+            >
               Sign Out
             </Button>
           )}
@@ -786,233 +812,292 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            {progressSteps.map((step, index) => (
-              <div
-                key={step.label}
-                className={`flex flex-col items-center ${index <= currentStep ? "text-white" : "text-gray-400"}`}
-              >
-                <div
-                  className={`
-                  w-10 h-10 rounded-full flex items-center justify-center mb-1
-                  ${
-                    index < currentStep
-                      ? "bg-green-500"
-                      : index === currentStep
-                        ? "bg-blue-500 animate-pulse"
-                        : "bg-gray-700"
-                  }
-                `}
-                >
-                  {index < currentStep ? <CheckCircle className="h-5 w-5" /> : step.icon}
-                </div>
-                <span className="text-xs hidden md:block">{step.label}</span>
-              </div>
-            ))}
-          </div>
-          <Progress value={(currentStep / (progressSteps.length - 1)) * 100} className="h-2" />
-        </div>
-
-        {/* Welcome Screen */}
-        {!session && currentStep === 0 && (
-          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-            <CardContent className="pt-6 flex flex-col items-center text-center">
-              <h2 className="text-3xl font-bold mb-4">Create Spotify Playlists from YouTube Videos</h2>
-              <p className="mb-8 max-w-2xl">
-                Turn your Facebook-shared YouTube videos into a Spotify playlist in just a few clicks! We'll find
-                matching songs on Spotify and create a playlist for you.
-              </p>
-              <Button size="lg" onClick={() => signIn("facebook")} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Facebook className="mr-2 h-5 w-5" /> Start with Facebook
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Facebook Connected, Fetching Videos */}
-        {session?.provider === "facebook" && currentStep === 1 && (
-          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
-                <h2 className="text-xl font-bold">Facebook Connected</h2>
-              </div>
-
-              {isFetchingVideos ? (
-                <div className="flex flex-col items-center py-8">
-                  <Loader2 className="h-12 w-12 animate-spin mb-4" />
-                  <p className="text-lg mb-2">Fetching your YouTube videos from Facebook...</p>
-                  {facebookFetchProgress.current > 0 && (
-                    <>
-                      <p className="text-md mb-4 font-semibold">
-                        {facebookFetchProgress.current} YouTube videos found so far
-                      </p>
-                      <p className="text-sm text-gray-300">Processed {facebookFetchProgress.total} posts</p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-8">
-                  <Button
-                    size="lg"
-                    onClick={handleFetchVideos}
-                    disabled={isFetchingVideos}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <RefreshCw className="mr-2 h-5 w-5" /> Fetch YouTube Videos
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Connect Spotify */}
-        {shouldConnectSpotify && session?.provider === "facebook" && currentStep === 2 && (
-          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
-                <h2 className="text-xl font-bold">Videos Found: {youtubeVideos.length}</h2>
-              </div>
-
-              <div className="flex flex-col items-center py-8">
-                <p className="text-lg mb-6">Now connect your Spotify account to continue</p>
-                <Button size="lg" onClick={handleSpotifyConnect} className="bg-green-600 hover:bg-green-700 text-white">
-                  <Spotify className="mr-2 h-5 w-5" /> Connect Spotify
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Searching Songs */}
-        {session?.provider === "spotify" && currentStep === 3 && (
-          <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
-                <h2 className="text-xl font-bold">Spotify Connected</h2>
-              </div>
-
-              {isSearchingSpotifySongs ? (
-                <div className="flex flex-col items-center py-8">
-                  <Loader2 className="h-12 w-12 animate-spin mb-4" />
-                  <p className="text-lg mb-2">Searching for songs on Spotify...</p>
-                  <p className="text-md mb-4 font-semibold">
-                    {searchProgress.current}/{searchProgress.total} Songs Searched
-                  </p>
-                  <div className="w-full max-w-md mb-2">
-                    <Progress value={(searchProgress.current / searchProgress.total) * 100} className="h-2" />
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    {searchProgress.current} of {searchProgress.total} videos processed
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-8">
-                  <Button
-                    size="lg"
-                    onClick={handleInitiatePlaylistCreation}
-                    disabled={isSearchingSpotifySongs}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Playlist Creation - Show after videos are fetched */}
-        {youtubeVideos.length > 0 && (
+      <main className="flex-1 container mx-auto px-4 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+          {/* Left Content */}
           <div className="space-y-6">
-            {/* Playlist Stats */}
-            <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-                  <h2 className="text-2xl font-bold mb-2 md:mb-0">Your Playlist</h2>
-                  <div className="flex space-x-4">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-300">Videos</p>
-                      <p className="text-xl font-bold">{songStats.totalVideos}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-300">Matches</p>
-                      <p className="text-xl font-bold">{songStats.matchedSongs}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-300">Success Rate</p>
-                      <p className="text-xl font-bold">
-                        {songStats.totalVideos > 0
-                          ? Math.round((songStats.matchedSongs / songStats.totalVideos) * 100)
-                          : 0}
-                        %
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-black opacity-70 tracking-wider uppercase">PLAYLIST CREATOR</p>
+              <h2 className="text-4xl lg:text-6xl font-bold text-black leading-tight">
+                {currentStep === 0 && "Create Spotify Playlists from YouTube Videos"}
+                {currentStep === 1 && "Fetching Your YouTube Videos"}
+                {currentStep === 2 && "Connect Your Spotify Account"}
+                {currentStep === 3 && "Finding Matching Songs"}
+                {currentStep === 4 && "Create Your Playlist"}
+                {currentStep === 5 && "Share Your Creation"}
+              </h2>
+            </div>
 
-            {/* Playlist Items */}
-            <Card className="bg-black bg-opacity-50 backdrop-blur-md border-none text-white">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Playlist Items</h3>
-                  {spotifySongs.length > 0 && (
-                    <div className="flex items-center">
-                      <Input
-                        type="text"
-                        placeholder="Enter playlist name"
-                        value={playlistName}
-                        onChange={(e) => setPlaylistName(e.target.value)}
-                        className="mr-2 bg-white bg-opacity-10 border-gray-700 text-white"
-                      />
+            <div className="space-y-4">
+              {/* Welcome Screen */}
+              {!session && currentStep === 0 && (
+                <div className="space-y-6">
+                  <p className="text-lg text-black opacity-80 max-w-lg">
+                    Turn your Facebook-shared YouTube videos into a Spotify playlist in just a few clicks! We'll find
+                    matching songs on Spotify and create a playlist for you.
+                  </p>
+                  <Button
+                    size="lg"
+                    onClick={() => signIn("facebook")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg rounded-full"
+                  >
+                    <Facebook className="mr-2 h-5 w-5" /> Start with Facebook
+                  </Button>
+                </div>
+              )}
+
+              {/* Facebook Connected, Fetching Videos */}
+              {session?.provider === "facebook" && currentStep === 1 && (
+                <div className="space-y-6">
+                  {isFetchingVideos ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-black" />
+                        <p className="text-lg text-black">Fetching your YouTube videos from Facebook...</p>
+                      </div>
+                      {facebookFetchProgress.current > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-lg font-semibold text-black">
+                            {facebookFetchProgress.current} YouTube videos found so far
+                          </p>
+                          <p className="text-sm text-black opacity-70">Processed {facebookFetchProgress.total} posts</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                        <p className="text-lg text-black">Facebook Connected</p>
+                      </div>
                       <Button
-                        onClick={() => createPlaylist(playlistName)}
-                        disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
-                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        size="lg"
+                        onClick={handleFetchVideos}
+                        disabled={isFetchingVideos}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg rounded-full"
                       >
-                        {isCreatingPlaylist ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Music className="mr-2 h-4 w-4" /> Create Playlist
-                          </>
-                        )}
+                        <RefreshCw className="mr-2 h-5 w-5" /> Fetch YouTube Videos
                       </Button>
                     </div>
                   )}
                 </div>
+              )}
 
-                <ScrollArea className="h-[50vh] pr-4">
-                  <ul className="space-y-2">
-                    {visibleItems.map((item) => (
-                      <PlaylistItem
-                        key={item.video.id}
-                        video={item.video}
-                        song={item.song}
-                        onRemove={handleRemoveItem}
-                      />
-                    ))}
-                    {visibleItems.length < youtubeVideos.length && (
-                      <li className="text-center p-2">
-                        <Button variant="ghost" onClick={loadMoreItems} className="text-white">
-                          Load more items
-                        </Button>
-                      </li>
-                    )}
-                  </ul>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+              {/* Connect Spotify */}
+              {shouldConnectSpotify && session?.provider === "facebook" && currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <p className="text-lg text-black">Videos Found: {youtubeVideos.length}</p>
+                  </div>
+                  <p className="text-lg text-black opacity-80">Now connect your Spotify account to continue</p>
+                  <Button
+                    size="lg"
+                    onClick={handleSpotifyConnect}
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg rounded-full"
+                  >
+                    <Spotify className="mr-2 h-5 w-5" /> Connect Spotify
+                  </Button>
+                </div>
+              )}
+
+              {/* Searching Songs */}
+              {session?.provider === "spotify" && currentStep === 3 && (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <p className="text-lg text-black">Spotify Connected</p>
+                  </div>
+
+                  {isSearchingSpotifySongs ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-black" />
+                        <p className="text-lg text-black">Searching for songs on Spotify...</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-black">
+                          {searchProgress.current}/{searchProgress.total} Songs Searched
+                        </p>
+                        <div className="w-full max-w-md">
+                          <Progress value={(searchProgress.current / searchProgress.total) * 100} className="h-2" />
+                        </div>
+                        <p className="text-sm text-black opacity-70">
+                          {searchProgress.current} of {searchProgress.total} videos processed
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      size="lg"
+                      onClick={handleInitiatePlaylistCreation}
+                      disabled={isSearchingSpotifySongs}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg rounded-full"
+                    >
+                      <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Create Playlist */}
+              {currentStep === 4 && spotifySongs.length > 0 && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex space-x-6">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-black">{songStats.totalVideos}</p>
+                        <p className="text-sm text-black opacity-70">Videos</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-black">{songStats.matchedSongs}</p>
+                        <p className="text-sm text-black opacity-70">Matches</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-black">
+                          {songStats.totalVideos > 0
+                            ? Math.round((songStats.matchedSongs / songStats.totalVideos) * 100)
+                            : 0}
+                          %
+                        </p>
+                        <p className="text-sm text-black opacity-70">Success Rate</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <Input
+                      type="text"
+                      placeholder="Enter playlist name"
+                      value={playlistName}
+                      onChange={(e) => setPlaylistName(e.target.value)}
+                      className="flex-1 bg-white bg-opacity-50 border-black border-opacity-20 text-black placeholder-black placeholder-opacity-50 rounded-full px-6 py-3"
+                    />
+                    <Button
+                      onClick={() => createPlaylist(playlistName)}
+                      disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
+                      className="bg-black text-white hover:bg-opacity-80 px-8 py-3 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCreatingPlaylist ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Music className="mr-2 h-4 w-4" /> Create Playlist
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation indicators */}
+            <div className="flex items-center justify-between pt-8">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-mono text-black opacity-70">
+                  {String(currentStep + 1).padStart(2, "0")}
+                </span>
+                <div className="w-8 h-px bg-black opacity-30"></div>
+                <span className="text-sm font-mono text-black opacity-70">
+                  {String(stepBackgrounds.length).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm font-semibold text-black opacity-70 tracking-wider uppercase">
+                <span>Scroll Down</span>
+                <ArrowDown className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Content - Visual Card */}
+          <div className="relative">
+            <div className="relative transform rotate-3 hover:rotate-0 transition-transform duration-500">
+              {/* Card stack effect */}
+              <div className="absolute inset-0 bg-blue-400 rounded-2xl transform translate-x-2 translate-y-2 opacity-60"></div>
+              <div className="absolute inset-0 bg-purple-400 rounded-2xl transform translate-x-1 translate-y-1 opacity-80"></div>
+
+              {/* Main card */}
+              <div className="relative bg-gradient-to-br from-pink-400 to-purple-600 rounded-2xl p-8 aspect-square flex items-center justify-center shadow-2xl">
+                <div className="text-center text-white">
+                  {currentStep === 0 && (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
+                        <Music className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-bold">Ready to Start</p>
+                    </div>
+                  )}
+                  {currentStep === 1 && (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
+                        <Facebook className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-bold">Fetching Videos</p>
+                    </div>
+                  )}
+                  {currentStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
+                        <Spotify className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-bold">Connect Spotify</p>
+                    </div>
+                  )}
+                  {currentStep === 3 && (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
+                        <RefreshCw className="h-8 w-8 animate-spin" />
+                      </div>
+                      <p className="text-xl font-bold">Finding Songs</p>
+                    </div>
+                  )}
+                  {currentStep >= 4 && (
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
+                        <CheckCircle className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-bold">Ready to Create</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Songs Grid - Show after videos are fetched */}
+        {youtubeVideos.length > 0 && (
+          <div className="mt-16 space-y-8">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-black mb-2">Your Music Collection</h3>
+              <p className="text-black opacity-70">Songs found from your Facebook YouTube shares</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+              {visibleItems.map((item, index) => (
+                <SongCard
+                  key={item.video.id}
+                  video={item.video}
+                  song={item.song}
+                  onRemove={handleRemoveItem}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            {visibleItems.length < youtubeVideos.length && (
+              <div className="text-center">
+                <Button
+                  variant="ghost"
+                  onClick={loadMoreItems}
+                  className="text-black hover:bg-black hover:bg-opacity-10 rounded-full px-8"
+                >
+                  Load more items
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
