@@ -95,7 +95,7 @@ function sanitizeVideoTitle(title: string): string {
   })
 
   // Remove all special characters except spaces and alphanumeric
-  cleanTitle = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, "")
+  cleanTitle = cleanTitle = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, "")
 
   // Remove multiple spaces and trim
   cleanTitle = cleanTitle.replace(/\s+/g, " ")
@@ -199,7 +199,7 @@ const SongCard = memo(
 
     return (
       <div
-        className={`relative bg-gradient-to-br ${colorClass} rounded-lg p-4 aspect-square flex flex-col justify-between text-white shadow-lg hover:shadow-xl transition-all duration-300 group`}
+        className={`relative bg-gradient-to-br ${colorClass} rounded-lg p-3 aspect-square flex flex-col justify-between text-white shadow-lg hover:shadow-xl transition-all duration-300 group`}
       >
         <button
           onClick={() => onRemove(video.id)}
@@ -222,9 +222,9 @@ const SongCard = memo(
           )}
         </div>
 
-        <div className="text-xs">
-          <p className="font-semibold truncate mb-1">{song ? song.name : video.title}</p>
-          {song && <p className="opacity-80 truncate">{song.artist}</p>}
+        <div className="text-xs space-y-1">
+          <p className="font-semibold text-sm leading-tight line-clamp-2 mb-2">{song ? song.name : video.title}</p>
+          {song && <p className="opacity-80 text-xs leading-tight line-clamp-1">{song.artist}</p>}
         </div>
       </div>
     )
@@ -1035,8 +1035,8 @@ export default function Home() {
             <div className="relative">
               <div className="relative transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 {/* Card stack effect with square shadows */}
-                <div className="absolute inset-0 bg-blue-400 rounded-2xl transform translate-x-2 translate-y-2 opacity-60 aspect-square"></div>
-                <div className="absolute inset-0 bg-purple-400 rounded-2xl transform translate-x-1 translate-y-1 opacity-80 aspect-square"></div>
+                <div className="absolute inset-0 bg-blue-400 rounded-2xl transform translate-x-3 translate-y-3 opacity-60 w-80 h-80 mx-auto"></div>
+                <div className="absolute inset-0 bg-purple-400 rounded-2xl transform translate-x-1.5 translate-y-1.5 opacity-80 w-80 h-80 mx-auto"></div>
 
                 {/* Main card - square */}
                 <div className="relative bg-gradient-to-br from-pink-400 to-purple-600 rounded-2xl p-6 aspect-square w-80 mx-auto flex items-center justify-center shadow-2xl">
