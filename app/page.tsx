@@ -95,7 +95,7 @@ function sanitizeVideoTitle(title: string): string {
   })
 
   // Remove all special characters except spaces and alphanumeric
-  cleanTitle = cleanTitle = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, "")
+  cleanTitle = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, "")
 
   // Remove multiple spaces and trim
   cleanTitle = cleanTitle.replace(/\s+/g, " ")
@@ -449,6 +449,9 @@ export default function Home() {
 
   const [facebookFetchProgress, setFacebookFetchProgress] = useState({ current: 0, total: 0 })
 
+  // Add state to track if we're waiting for Spotify connection
+  const [isConnectingSpotify, setIsConnectingSpotify] = useState(false)
+
   // Background gradients for each step
   const stepBackgrounds = [
     "bg-gradient-to-br from-orange-300 via-yellow-300 to-orange-400", // Start - Orange/Yellow
@@ -543,6 +546,7 @@ export default function Home() {
 
         // Schedule Spotify connection after the current execution context
         if (session?.provider === "facebook") {
+          setIsConnectingSpotify(true)
           window.setTimeout(() => {
             signIn("spotify")
           }, 1000)
@@ -579,6 +583,7 @@ export default function Home() {
   })
 
   const handleSpotifyConnect = useCallback(() => {
+    setIsConnectingSpotify(true)
     signIn("spotify")
   }, [])
 
@@ -718,6 +723,7 @@ export default function Home() {
   // Separate effect for handling Spotify session
   useEffect(() => {
     if (session?.provider === "spotify") {
+      setIsConnectingSpotify(false) // Stop showing loading spinner
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
         newSteps[2].status = "completed"
@@ -856,6 +862,12 @@ export default function Home() {
                 {currentStep === 4 && "Create Your Playlist"}
                 {currentStep === 5 && "Share Your Creation"}
               </h2>
+              {currentStep === 1 && (
+                <p className="text-lg text-black opacity-80 max-w-2xl">
+                  We're scanning through your Facebook posts to find all the YouTube videos you've shared. This includes
+                  music videos, live performances, and any other YouTube content from your timeline.
+                </p>
+              )}
               {currentStep === 5 && (
                 <div className="space-y-4">
                   <p className="text-lg text-black opacity-80">Share your new playlist with the world!</p>
@@ -927,13 +939,32 @@ export default function Home() {
                     <CheckCircle className="h-6 w-6 text-green-600" />
                     <p className="text-lg text-black">Videos Found: {youtubeVideos.length}</p>
                   </div>
-                  <p className="text-lg text-black opacity-80">Now connect your Spotify account to continue</p>
+                  <p className="text-lg text-black opacity-80 max-w-2xl">
+                    Great! We found {youtubeVideos.length} YouTube videos from your Facebook posts. Now we need to
+                    connect your Spotify account to search for matching songs and create your playlist.
+                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-black opacity-70">• We'll search for each video title on Spotify</p>
+                    <p className="text-sm text-black opacity-70">
+                      • Only songs with high accuracy matches will be added
+                    </p>
+                    <p className="text-sm text-black opacity-70">• Your playlist will be created privately</p>
+                  </div>
                   <Button
                     size="lg"
                     onClick={handleSpotifyConnect}
+                    disabled={isConnectingSpotify}
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg rounded-full"
                   >
-                    <Spotify className="mr-2 h-5 w-5" /> Connect Spotify
+                    {isConnectingSpotify ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Spotify className="mr-2 h-5 w-5" /> Connect Spotify
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -945,14 +976,34 @@ export default function Home() {
                     <CheckCircle className="h-6 w-6 text-green-600" />
                     <p className="text-lg text-black">Spotify Connected</p>
                   </div>
-
+                  <p className="text-lg text-black opacity-80 max-w-2xl">
+                    Perfect! Your Spotify account is now connected. We're ready to search for matching songs from your{" "}
+                    {youtubeVideos.length} YouTube videos.
+                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-black opacity-70">
+                      • We'll clean up video titles for better search results
+                    </p>
+                    <p className="text-sm text-black opacity-70">• Only songs with 60%+ accuracy will be included</p>
+                    <p className="text-sm text-black opacity-70">
+                      • This process may take a few minutes for large collections
+                    </p>
+                  </div>
                   <Button
                     size="lg"
                     onClick={handleInitiatePlaylistCreation}
                     disabled={isSearchingSpotifySongs}
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg rounded-full"
                   >
-                    <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
+                    {isSearchingSpotifySongs ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Searching...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-5 w-5" /> Find Matching Songs
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -980,6 +1031,21 @@ export default function Home() {
                         <p className="text-sm text-black opacity-70">Success Rate</p>
                       </div>
                     </div>
+                  </div>
+                  <p className="text-lg text-black opacity-80 max-w-2xl">
+                    Excellent! We found {songStats.matchedSongs} matching songs from your {songStats.totalVideos} videos
+                    with a{" "}
+                    {songStats.totalVideos > 0 ? Math.round((songStats.matchedSongs / songStats.totalVideos) * 100) : 0}
+                    % success rate. Give your playlist a name and we'll create it for you.
+                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-black opacity-70">
+                      • Your playlist will be created as private by default
+                    </p>
+                    <p className="text-sm text-black opacity-70">
+                      • You can change the privacy settings later in Spotify
+                    </p>
+                    <p className="text-sm text-black opacity-70">• All matched songs will be added automatically</p>
                   </div>
 
                   <div className="flex space-x-3">
@@ -1044,7 +1110,11 @@ export default function Home() {
                     {currentStep === 1 && (
                       <div className="space-y-4">
                         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
-                          <Facebook className="h-8 w-8" />
+                          {isFetchingVideos ? (
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                          ) : (
+                            <Facebook className="h-8 w-8" />
+                          )}
                         </div>
                         <p className="text-xl font-bold">Fetching Videos</p>
                         {isFetchingVideos && facebookFetchProgress.current > 0 && (
@@ -1061,9 +1131,13 @@ export default function Home() {
                     {currentStep === 2 && (
                       <div className="space-y-4">
                         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
-                          <Spotify className="h-8 w-8" />
+                          {isConnectingSpotify ? (
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                          ) : (
+                            <Spotify className="h-8 w-8" />
+                          )}
                         </div>
-                        <p className="text-xl font-bold">Connect Spotify</p>
+                        <p className="text-xl font-bold">{isConnectingSpotify ? "Connecting..." : "Connect Spotify"}</p>
                         <p className="text-sm opacity-80">{youtubeVideos.length} videos ready</p>
                       </div>
                     )}
