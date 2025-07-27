@@ -160,7 +160,7 @@ function calculateSimilarity(original: string, found: string): number {
 
   let commonWords = 0
   originalWords.forEach((word) => {
-    if (foundWords.some((foundWord) => foundWord.includes(word) || word.includes(foundWord))) {
+    if (foundWords.some((foundWord) => foundWord.includes(word) || word.includes(word))) {
       commonWords++
     }
   })
@@ -670,16 +670,19 @@ export default function Home() {
     error: createPlaylistError,
   } = useMutation({
     mutationFn: (name: string) => {
-      setCurrentSteps((prev) => {
-        const newSteps = [...prev]
-        newSteps[3].status = "loading"
-        return newSteps
-      })
       return createSpotifyPlaylist(
         session?.accessToken as string,
         name,
         spotifySongs.map((song) => `spotify:track:${song.id}`),
       )
+    },
+    onMutate: () => {
+      // This runs immediately when the mutation is called
+      setCurrentSteps((prev) => {
+        const newSteps = [...prev]
+        newSteps[3].status = "loading"
+        return newSteps
+      })
     },
     onSuccess: (data) => {
       setCurrentSteps((prev) => {
@@ -1054,11 +1057,21 @@ export default function Home() {
                       placeholder="Enter playlist name"
                       value={playlistName}
                       onChange={(e) => setPlaylistName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          playlistName.trim() &&
+                          !isCreatingPlaylist &&
+                          spotifySongs.length > 0
+                        ) {
+                          createPlaylist(playlistName)
+                        }
+                      }}
                       className="flex-1 bg-white bg-opacity-50 border-black border-opacity-20 text-black placeholder-black placeholder-opacity-50 rounded-full px-6 py-3"
                     />
                     <Button
                       onClick={() => createPlaylist(playlistName)}
-                      disabled={isCreatingPlaylist || !playlistName || spotifySongs.length === 0}
+                      disabled={isCreatingPlaylist || !playlistName.trim() || spotifySongs.length === 0}
                       className="bg-black text-white hover:bg-opacity-80 px-8 py-3 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCreatingPlaylist ? (
@@ -1162,9 +1175,15 @@ export default function Home() {
                     {currentStep >= 4 && (
                       <div className="space-y-4">
                         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
-                          <CheckCircle className="h-8 w-8" />
+                          {isCreatingPlaylist ? (
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-8 w-8" />
+                          )}
                         </div>
-                        <p className="text-xl font-bold">Ready to Create</p>
+                        <p className="text-xl font-bold">
+                          {isCreatingPlaylist ? "Creating Playlist..." : "Ready to Create"}
+                        </p>
                         <div className="space-y-1">
                           <p className="text-sm">{songStats.matchedSongs} songs matched</p>
                           <p className="text-xs opacity-80">
