@@ -160,7 +160,7 @@ function calculateSimilarity(original: string, found: string): number {
 
   let commonWords = 0
   originalWords.forEach((word) => {
-    if (foundWords.some((foundWord) => foundWord.includes(word) || word.includes(word))) {
+    if (foundWords.some((foundWord) => foundWord.includes(word) || word.includes(foundWord))) {
       commonWords++
     }
   })
@@ -830,12 +830,6 @@ export default function Home() {
             </div>
             <h1 className="text-xl font-bold text-black">YouTube to Spotify</h1>
           </div>
-          <nav className="hidden md:flex space-x-8">
-            <span className="text-black font-medium">Stories</span>
-            <span className="text-black font-medium">Listen</span>
-            <span className="text-black font-medium">Team</span>
-            <span className="text-black font-medium">Tools</span>
-          </nav>
           {session && (
             <Button
               variant="ghost"

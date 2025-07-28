@@ -11,7 +11,7 @@ export function Footer() {
       </div>
 
       <div className="container mx-auto relative z-10">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-2 gap-8">
           {/* Logo */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -24,9 +24,9 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Links Column 1 */}
+          {/* Links Column */}
           <div className="space-y-3">
-            <h4 className="font-semibold text-black">Newsroom</h4>
+            <h4 className="font-semibold text-black">Legal</h4>
             <div className="space-y-2">
               <Link href="/policy" className="block text-black hover:underline transition-colors">
                 Data Policy
@@ -39,46 +39,12 @@ export function Footer() {
               </Link>
             </div>
           </div>
-
-          {/* Links Column 2 */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-black">Instagram</h4>
-            <div className="space-y-2">
-              <span className="block text-black">Twitter</span>
-            </div>
-          </div>
-
-          {/* Time Zone Info */}
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-mono text-black">SE GBG • STO</span>
-                <span className="text-sm font-mono text-black font-bold">10:10:03</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-mono text-black">UK LDN</span>
-                <span className="text-sm font-mono text-black font-bold">09:10:03</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-mono text-black">US NY • BOS</span>
-                <span className="text-sm font-mono text-black font-bold">04:10:03</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Bottom section */}
         <div className="flex flex-col md:flex-row justify-between items-center mt-12 pt-8 border-t border-black border-opacity-20">
           <div className="flex flex-wrap gap-6 text-sm text-black">
             <span>© 2025 YouTube to Spotify</span>
-            <span>Legal</span>
-            <span>Privacy</span>
-            <span>Cookies</span>
-            <span>Revoke access</span>
-            <span>RSS</span>
           </div>
 
           <div className="flex items-center space-x-2 mt-4 md:mt-0">
