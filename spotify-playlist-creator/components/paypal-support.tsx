@@ -17,15 +17,17 @@ export function PayPalSupport({ onClose, showCloseButton = false }: PayPalSuppor
   const predefinedAmounts = [3, 5, 10, 25]
 
   const handlePayPalDonation = (amount: number) => {
-    // PayPal donation URL using your paypal.me link
+    // PayPal donation URL using your paypal.me link - opens in new tab to prevent navigation
     const paypalUrl = `https://paypal.me/kovaciclazar/${amount}`
-    window.open(paypalUrl, "_blank")
+    window.open(paypalUrl, "_blank", "noopener,noreferrer")
   }
 
   const handleCustomDonation = () => {
     const amount = Number.parseFloat(customAmount)
     if (amount && amount > 0) {
-      handlePayPalDonation(amount)
+      // Open PayPal in new tab to prevent navigation
+      const paypalUrl = `https://paypal.me/kovaciclazar/${amount}`
+      window.open(paypalUrl, "_blank", "noopener,noreferrer")
     }
   }
 

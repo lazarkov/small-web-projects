@@ -968,17 +968,17 @@ export default function Home() {
                     </Button>
                   </a>
 
-                  {/* Google Ads Section */}
+                  {/* PayPal Support Section - Single instance */}
+                  <div className="mt-8">
+                    <PayPalSupport />
+                  </div>
+
+                  {/* Google Ads Section - Moved below donation */}
                   <div className="mt-8 space-y-4">
                     <div className="text-center">
                       <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
                       <GoogleAds adSlot="1234567890" className="max-w-md mx-auto" />
                     </div>
-                  </div>
-
-                  {/* PayPal Support Section */}
-                  <div className="mt-8">
-                    <PayPalSupport />
                   </div>
                 </div>
               )}
@@ -1300,30 +1300,6 @@ export default function Home() {
                 </Button>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Support Section - Show after songs are loaded */}
-        {spotifySongs.length > 0 && currentStep >= 4 && (
-          <div className="mt-16 space-y-8">
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Google Ads */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
-                  <GoogleAds
-                    adSlot="9876543210"
-                    adFormat="rectangle"
-                    className="bg-white bg-opacity-20 rounded-lg p-4"
-                  />
-                </div>
-              </div>
-
-              {/* PayPal Support */}
-              <div>
-                <PayPalSupport showCloseButton={false} />
-              </div>
-            </div>
           </div>
         )}
 
