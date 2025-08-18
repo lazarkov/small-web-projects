@@ -473,6 +473,9 @@ export default function Home() {
   // Add new state for tracking playlist creation in progress
   const [playlistCreationInProgress, setPlaylistCreationInProgress] = useState(false)
 
+  // Add this after the other state declarations
+  const [hasStoredPlaylist, setHasStoredPlaylist] = useState(false)
+
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
@@ -611,7 +614,8 @@ export default function Home() {
   }, [session, refetchVideos])
 
   useEffect(() => {
-    if (session?.provider === "facebook") {
+    if (session?.provider === "facebook" && !hasStoredPlaylist) {
+      // Add the condition here
       setCurrentProgress(25)
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
@@ -623,7 +627,7 @@ export default function Home() {
       // Automatically fetch videos when connected to Facebook
       handleFetchVideos()
     }
-  }, [session, handleFetchVideos])
+  }, [session, handleFetchVideos, hasStoredPlaylist])
 
   const {
     mutate: searchSongs,
@@ -751,7 +755,8 @@ export default function Home() {
 
   // Separate effect for handling Spotify session
   useEffect(() => {
-    if (session?.provider === "spotify") {
+    if (session?.provider === "spotify" && !hasStoredPlaylist) {
+      // Add the condition here
       setIsConnectingSpotify(false) // Stop showing loading spinner
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
@@ -774,13 +779,14 @@ export default function Home() {
         }
       }
     }
-  }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation])
+  }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation, hasStoredPlaylist])
 
   // Update the sign out handler to clear all localStorage
   const handleSignOut = () => {
     localStorage.removeItem(STORAGE_KEY_VIDEOS)
     localStorage.removeItem(STORAGE_KEY_SONGS)
     localStorage.removeItem(STORAGE_KEY_PLAYLIST)
+    setHasStoredPlaylist(false) // Add this line
     signOut({ callbackUrl: "/" })
   }
 
@@ -796,6 +802,7 @@ export default function Home() {
       setCreatedPlaylistId(playlistInfo.id)
       setCreatedPlaylistName(playlistInfo.name)
       setPlaylistUrl(playlistInfo.url)
+      setHasStoredPlaylist(true) // Add this line
 
       // Set all steps as completed and go to share step
       setCurrentSteps((prev) => {
@@ -1045,6 +1052,7 @@ export default function Home() {
                           setCreatedPlaylistId("")
                           setCreatedPlaylistName("")
                           setPlaylistUrl("")
+                          setHasStoredPlaylist(false) // Add this line
                           setCurrentStep(4)
                           setCurrentProgress(75)
                           setCurrentSteps((prev) => {
