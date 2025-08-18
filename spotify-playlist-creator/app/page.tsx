@@ -47,6 +47,7 @@ type Song = {
 
 const STORAGE_KEY_VIDEOS = "facebook_youtube_videos"
 const STORAGE_KEY_SONGS = "spotify_songs"
+const STORAGE_KEY_PLAYLIST = "created_playlist_info"
 
 // Sanitizer method to clean up video titles before Spotify search
 function sanitizeVideoTitle(title: string): string {
@@ -469,6 +470,9 @@ export default function Home() {
   // New state variable for support section
   const [showSupportSection, setShowSupportSection] = useState(false)
 
+  // Add new state for tracking playlist creation in progress
+  const [playlistCreationInProgress, setPlaylistCreationInProgress] = useState(false)
+
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
@@ -677,6 +681,7 @@ export default function Home() {
     error: createPlaylistError,
   } = useMutation({
     mutationFn: (name: string) => {
+      setPlaylistCreationInProgress(true)
       return createSpotifyPlaylist(
         session?.accessToken as string,
         name,
@@ -692,6 +697,18 @@ export default function Home() {
       })
     },
     onSuccess: (data) => {
+      const playlistInfo = {
+        id: data.id,
+        name: data.name,
+        url: `https://open.spotify.com/playlist/${data.id}`,
+        createdAt: new Date().toISOString(),
+        songCount: spotifySongs.length,
+        totalVideos: youtubeVideos.length,
+      }
+
+      // Store playlist info in localStorage
+      localStorage.setItem(STORAGE_KEY_PLAYLIST, JSON.stringify(playlistInfo))
+
       setCurrentSteps((prev) => {
         const newSteps = [...prev]
         newSteps[3].status = "completed"
@@ -703,6 +720,7 @@ export default function Home() {
       setCreatedPlaylistName(data.name)
       setPlaylistUrl(`https://open.spotify.com/playlist/${data.id}`)
       setShowSharePopup(false)
+      setPlaylistCreationInProgress(false)
     },
     onError: (error) => {
       console.error("Error creating playlist:", error)
@@ -711,6 +729,7 @@ export default function Home() {
         newSteps[3].status = "pending"
         return newSteps
       })
+      setPlaylistCreationInProgress(false)
       alert("Failed to create playlist. Please try again.")
     },
   })
@@ -757,10 +776,49 @@ export default function Home() {
     }
   }, [session, youtubeVideos.length, spotifySongs.length, handleInitiatePlaylistCreation])
 
+  // Update the sign out handler to clear all localStorage
+  const handleSignOut = () => {
+    localStorage.removeItem(STORAGE_KEY_VIDEOS)
+    localStorage.removeItem(STORAGE_KEY_SONGS)
+    localStorage.removeItem(STORAGE_KEY_PLAYLIST)
+    signOut({ callbackUrl: "/" })
+  }
+
   // Load stored data on component mount
   useEffect(() => {
+    const storedPlaylist = localStorage.getItem(STORAGE_KEY_PLAYLIST)
     const storedVideos = localStorage.getItem(STORAGE_KEY_VIDEOS)
     const storedSongs = localStorage.getItem(STORAGE_KEY_SONGS)
+
+    // If we have a completed playlist, go directly to share step
+    if (storedPlaylist) {
+      const playlistInfo = JSON.parse(storedPlaylist)
+      setCreatedPlaylistId(playlistInfo.id)
+      setCreatedPlaylistName(playlistInfo.name)
+      setPlaylistUrl(playlistInfo.url)
+
+      // Set all steps as completed and go to share step
+      setCurrentSteps((prev) => {
+        const newSteps = [...prev]
+        newSteps[0].status = "completed"
+        newSteps[1].status = "completed"
+        newSteps[2].status = "completed"
+        newSteps[3].status = "completed"
+        return newSteps
+      })
+      setCurrentProgress(100)
+      setCurrentStep(5) // Go directly to share step
+
+      // Load songs and videos data if available
+      if (storedVideos && storedSongs) {
+        const parsedVideos = JSON.parse(storedVideos)
+        const parsedSongs = JSON.parse(storedSongs)
+        setYoutubeVideos(parsedVideos)
+        setSpotifySongs(parsedSongs)
+      }
+
+      return // Exit early, don't process other storage items
+    }
 
     if (storedVideos) {
       const parsedVideos = JSON.parse(storedVideos)
@@ -890,12 +948,9 @@ export default function Home() {
             </div>
             <h1 className="text-xl font-bold text-black">YouTube to Spotify</h1>
           </div>
+
           {session && (
-            <Button
-              variant="ghost"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-black hover:bg-black hover:bg-opacity-10"
-            >
+            <Button variant="ghost" onClick={handleSignOut} className="text-black hover:bg-black hover:bg-opacity-10">
               Sign Out
             </Button>
           )}
@@ -980,6 +1035,31 @@ export default function Home() {
                       <GoogleAds adSlot="1234567890" className="max-w-md mx-auto" />
                     </div>
                   </div>
+
+                  {currentStep === 5 && (
+                    <div className="mt-8">
+                      <Button
+                        onClick={() => {
+                          // Clear playlist info and go back to create step
+                          localStorage.removeItem(STORAGE_KEY_PLAYLIST)
+                          setCreatedPlaylistId("")
+                          setCreatedPlaylistName("")
+                          setPlaylistUrl("")
+                          setCurrentStep(4)
+                          setCurrentProgress(75)
+                          setCurrentSteps((prev) => {
+                            const newSteps = [...prev]
+                            newSteps[3].status = "completed"
+                            return newSteps
+                          })
+                        }}
+                        variant="outline"
+                        className="bg-white bg-opacity-20 border-black border-opacity-30 text-black hover:bg-white hover:bg-opacity-30 px-6 py-2 rounded-full"
+                      >
+                        Create Another Playlist
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1138,12 +1218,17 @@ export default function Home() {
                     />
                     <Button
                       onClick={() => createPlaylist(playlistName)}
-                      disabled={isCreatingPlaylist || !playlistName.trim() || spotifySongs.length === 0}
+                      disabled={
+                        isCreatingPlaylist ||
+                        playlistCreationInProgress ||
+                        !playlistName.trim() ||
+                        spotifySongs.length === 0
+                      }
                       className="bg-black text-white hover:bg-opacity-80 px-8 py-3 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isCreatingPlaylist ? (
+                      {isCreatingPlaylist || playlistCreationInProgress ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Playlist...
                         </>
                       ) : (
                         <>
@@ -1242,14 +1327,20 @@ export default function Home() {
                     {currentStep >= 4 && (
                       <div className="space-y-4">
                         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto">
-                          {isCreatingPlaylist ? (
+                          {isCreatingPlaylist || playlistCreationInProgress ? (
                             <Loader2 className="h-8 w-8 animate-spin" />
-                          ) : (
+                          ) : currentStep === 5 ? (
                             <CheckCircle className="h-8 w-8" />
+                          ) : (
+                            <Music className="h-8 w-8" />
                           )}
                         </div>
                         <p className="text-xl font-bold">
-                          {isCreatingPlaylist ? "Creating Playlist..." : "Ready to Create"}
+                          {isCreatingPlaylist || playlistCreationInProgress
+                            ? "Creating Playlist..."
+                            : currentStep === 5
+                              ? "Playlist Created!"
+                              : "Ready to Create"}
                         </p>
                         <div className="space-y-1">
                           <p className="text-sm">{songStats.matchedSongs} songs matched</p>
