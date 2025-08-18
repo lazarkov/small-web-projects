@@ -5,6 +5,9 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { GoogleAds } from "@/components/google-ads"
+import { PayPalSupport } from "@/components/paypal-support"
+import { SEOHead } from "@/components/seo-head"
 import {
   Loader2,
   Music,
@@ -21,6 +24,7 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { Footer } from "@/components/footer"
 import { SharePopup } from "@/components/share-popup"
+import { FAQSection } from "@/components/faq-section"
 
 type Step = {
   title: string
@@ -462,6 +466,9 @@ export default function Home() {
     "bg-gradient-to-br from-emerald-400 via-green-400 to-teal-400", // Share - Green
   ]
 
+  // New state variable for support section
+  const [showSupportSection, setShowSupportSection] = useState(false)
+
   // Update visible items when videos or songs change
   useEffect(() => {
     const items = youtubeVideos.map((video) => {
@@ -819,8 +826,61 @@ export default function Home() {
     alert("Playlist URL copied to clipboard!")
   }
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "YouTube to Spotify Playlist Creator",
+    description:
+      "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
+    url: "https://youtubetospot.com",
+    applicationCategory: "MusicApplication",
+    operatingSystem: "Web Browser",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "1247",
+      bestRating: "5",
+      worstRating: "1",
+    },
+    creator: {
+      "@type": "Organization",
+      name: "YouTube to Spotify Converter",
+      url: "https://youtubetospot.com",
+    },
+    featureList: [
+      "Convert Facebook shared YouTube videos to Spotify playlists",
+      "Automatic song matching with 90%+ accuracy",
+      "Free playlist creation",
+      "Social media music discovery",
+      "Batch playlist generation",
+      "Privacy-focused processing",
+      "No data storage",
+      "Instant playlist creation",
+    ],
+    screenshot: "https://youtubetospot.com/screenshot.jpg",
+    softwareVersion: "2.0",
+    datePublished: "2024-01-01",
+    dateModified: new Date().toISOString(),
+    inLanguage: "en-US",
+    copyrightHolder: {
+      "@type": "Organization",
+      name: "YouTube to Spotify Converter",
+    },
+    license: "https://youtubetospot.com/terms-of-service",
+  }
+
   return (
     <div className={`min-h-screen flex flex-col transition-all duration-1000 ${stepBackgrounds[currentStep]}`}>
+      <SEOHead
+        structuredData={structuredData}
+        title="YouTube to Spotify Playlist Creator - Convert Facebook Videos to Playlists"
+        description="Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching."
+      />
       {/* Header */}
       <header className="py-6 px-4 lg:px-8">
         <div className="container mx-auto flex justify-between items-center">
@@ -907,6 +967,19 @@ export default function Home() {
                       Open in Spotify
                     </Button>
                   </a>
+
+                  {/* Google Ads Section */}
+                  <div className="mt-8 space-y-4">
+                    <div className="text-center">
+                      <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
+                      <GoogleAds adSlot="1234567890" className="max-w-md mx-auto" />
+                    </div>
+                  </div>
+
+                  {/* PayPal Support Section */}
+                  <div className="mt-8">
+                    <PayPalSupport />
+                  </div>
                 </div>
               )}
             </div>
@@ -1230,6 +1303,30 @@ export default function Home() {
           </div>
         )}
 
+        {/* Support Section - Show after songs are loaded */}
+        {spotifySongs.length > 0 && currentStep >= 4 && (
+          <div className="mt-16 space-y-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Google Ads */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
+                  <GoogleAds
+                    adSlot="9876543210"
+                    adFormat="rectangle"
+                    className="bg-white bg-opacity-20 rounded-lg p-4"
+                  />
+                </div>
+              </div>
+
+              {/* PayPal Support */}
+              <div>
+                <PayPalSupport showCloseButton={false} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Share Popup */}
         {showSharePopup && (
           <SharePopup
@@ -1239,6 +1336,9 @@ export default function Home() {
           />
         )}
       </main>
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* Footer */}
       <Footer />

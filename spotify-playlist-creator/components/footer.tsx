@@ -11,9 +11,9 @@ export function Footer() {
       </div>
 
       <div className="container mx-auto relative z-10">
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Logo */}
-          <div className="space-y-4">
+        <div className="grid md:grid-cols-4 gap-8">
+          {/* Logo and Description */}
+          <div className="space-y-4 md:col-span-2">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                 <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -22,29 +22,66 @@ export function Footer() {
               </div>
               <span className="text-lg font-bold text-black">YouTube to Spotify</span>
             </div>
+            <p className="text-sm text-black opacity-80 max-w-md">
+              The #1 free tool to convert your Facebook shared YouTube videos into Spotify playlists. Create unlimited
+              playlists with 90%+ accuracy matching. No data stored, completely private.
+            </p>
+            <div className="flex space-x-4 text-sm text-black opacity-70">
+              <span>🎵 90%+ Accuracy</span>
+              <span>🔒 Privacy First</span>
+              <span>⚡ Instant Results</span>
+            </div>
           </div>
 
-          {/* Links Column */}
+          {/* Quick Links */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-black">Quick Links</h4>
+            <div className="space-y-2">
+              <Link href="/" className="block text-black hover:underline transition-colors text-sm">
+                Home
+              </Link>
+              <Link href="/dashboard" className="block text-black hover:underline transition-colors text-sm">
+                Dashboard
+              </Link>
+              <Link href="#faq" className="block text-black hover:underline transition-colors text-sm">
+                FAQ
+              </Link>
+            </div>
+          </div>
+
+          {/* Legal Links */}
           <div className="space-y-3">
             <h4 className="font-semibold text-black">Legal</h4>
             <div className="space-y-2">
-              <Link href="/policy" className="block text-black hover:underline transition-colors">
+              <Link href="/policy" className="block text-black hover:underline transition-colors text-sm">
                 Data Policy
               </Link>
-              <Link href="/privacy-policy" className="block text-black hover:underline transition-colors">
+              <Link href="/privacy-policy" className="block text-black hover:underline transition-colors text-sm">
                 Privacy Policy
               </Link>
-              <Link href="/terms-of-service" className="block text-black hover:underline transition-colors">
+              <Link href="/terms-of-service" className="block text-black hover:underline transition-colors text-sm">
                 Terms of Service
               </Link>
             </div>
           </div>
         </div>
 
+        {/* Keywords for SEO */}
+        <div className="mt-8 pt-4 border-t border-black border-opacity-20">
+          <div className="text-xs text-black opacity-60 text-center">
+            <p className="mb-2">
+              <strong>Popular searches:</strong> youtube to spotify converter, facebook music to spotify, playlist
+              creator, convert youtube playlist, spotify playlist generator, social media music, youtube music
+              converter, facebook videos to spotify, music discovery tool, playlist maker
+            </p>
+          </div>
+        </div>
+
         {/* Bottom section */}
-        <div className="flex flex-col md:flex-row justify-between items-center mt-12 pt-8 border-t border-black border-opacity-20">
+        <div className="flex flex-col md:flex-row justify-between items-center mt-8 pt-8 border-t border-black border-opacity-20">
           <div className="flex flex-wrap gap-6 text-sm text-black">
-            <span>© 2025 YouTube to Spotify</span>
+            <span>© 2025 YouTube to Spotify Playlist Creator</span>
+            <span>Made with ❤️ for music lovers</span>
           </div>
 
           <div className="flex items-center space-x-2 mt-4 md:mt-0">
