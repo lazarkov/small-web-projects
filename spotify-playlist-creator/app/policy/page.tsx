@@ -52,7 +52,7 @@ export default function PolicyPage() {
           <h2 className="text-2xl font-semibold mb-2">Contact Us</h2>
           <p>
             If you have any questions about our data handling practices or need assistance, please contact us at:
-            support@youtubetospot ify.com
+            admin@spotmix.me
           </p>
         </section>
 
