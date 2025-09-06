@@ -1,39 +1,50 @@
 {
-  "name": "Spotmix Playlist Creator",
-  "short_name": "YT to Spotify",
-  "description": "Convert your Facebook shared YouTube videos into Spotify playlists instantly",
+  "name": "Spotmix - Free Spotify Playlist Creator from Facebook Posts",
+  "short_name": "Spotmix",
+  "description": "Create Spotify playlists from your Facebook posts instantly! Free tool to convert Facebook shared YouTube videos into Spotify playlists.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1DB954",
   "orientation": "portrait-primary",
-    "icons": [
+  "icons": [
     {
-      "src": "/web-app-manifest-192x192.png",
+      "src": "/android-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["music", "entertainment", "productivity"],
+  "categories": ["music", "entertainment", "productivity", "social"],
   "screenshots": [
     {
       "src": "/screenshot-wide.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Spotmix Playlist Creator - Desktop View"
     },
     {
       "src": "/screenshot-narrow.png",
       "sizes": "640x1136",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Spotmix Playlist Creator - Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Playlist",
+      "short_name": "Create",
+      "description": "Start creating a Spotify playlist from Facebook posts",
+      "url": "/",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

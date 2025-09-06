@@ -8,36 +8,83 @@ const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const metadata = {
   title: {
-    default: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
-    template: "%s | Spotmix Converter",
+    default: "Spotmix - Create Spotify Playlists from Facebook Posts | Free Playlist Creator",
+    template: "%s | Spotmix - Free Spotify Playlist Creator",
   },
   description:
-    "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
+    "Create Spotify playlists from your Facebook posts instantly! Free tool to convert Facebook shared YouTube videos into Spotify playlists. Automatic song matching, playlist generator, music discovery tool. No signup required.",
   keywords: [
-    "spotmix",
-    "facebook to spotify",
-    "playlist creator",
-    "convert youtube playlist",
+    // Primary keywords
+    "create spotify playlist",
+    "spotify playlist creator",
     "spotify playlist generator",
-    "facebook music",
-    "youtube music converter",
-    "social media playlist",
-    "music playlist tool",
-    "spotify automation",
-    "youtube converter",
-    "facebook videos to spotify",
-    "music discovery",
-    "playlist maker",
-    "spotify tools",
+    "make spotify playlist",
+    "build spotify playlist",
+    "spotify playlist maker",
+    "free spotify playlist creator",
+    "automatic spotify playlist",
+    "spotify playlist tool",
+    "spotify playlist builder",
+
+    // Facebook integration
+    "facebook to spotify",
+    "facebook posts to spotify",
+    "facebook music to spotify",
+    "facebook shared videos to spotify",
+    "facebook youtube to spotify",
+    "social media to spotify",
+    "facebook playlist creator",
+    "convert facebook posts",
+
+    // YouTube conversion
+    "youtube to spotify",
+    "youtube playlist to spotify",
+    "convert youtube playlist",
+    "youtube music to spotify",
+    "youtube videos to spotify",
+    "youtube converter spotify",
+    "youtube to spotify converter",
     "youtube playlist converter",
-    "social music",
-    "music streaming",
-    "playlist generator free",
-    "convert music playlist",
+
+    // Music discovery and tools
+    "music playlist generator",
+    "music discovery tool",
+    "playlist from social media",
+    "automatic music playlist",
+    "music playlist maker",
+    "song playlist creator",
+    "music streaming playlist",
+    "playlist automation",
+    "music curation tool",
+    "playlist organizer",
+
+    // Specific use cases
+    "spotmix",
+    "spotmix converter",
+    "spotmix playlist creator",
+    "free music tools",
+    "music playlist tools",
+    "spotify tools",
+    "music streaming tools",
+    "playlist creation software",
+    "music organization",
+    "spotify automation",
+
+    // Long-tail keywords
+    "how to create spotify playlist",
+    "how to make spotify playlist from facebook",
+    "convert facebook videos to spotify",
+    "turn facebook posts into playlist",
+    "facebook music playlist creator",
+    "social media music to spotify",
+    "bulk spotify playlist creator",
+    "mass spotify playlist generator",
+    "spotify playlist from videos",
+    "music playlist from social media",
   ].join(", "),
-  authors: [{ name: "Spotmix Converter" }],
-  creator: "Spotmix Converter",
-  publisher: "Spotmix Converter",
+  authors: [{ name: "Spotmix - Free Spotify Playlist Creator" }],
+  creator: "Spotmix Playlist Creator",
+  publisher: "Spotmix Music Tools",
   formatDetection: {
     email: false,
     address: false,
@@ -48,17 +95,17 @@ export const metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
+    title: "Spotmix - Create Spotify Playlists from Facebook Posts | Free Playlist Creator",
     description:
-      "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
+      "Create Spotify playlists from your Facebook posts instantly! Free tool to convert Facebook shared YouTube videos into Spotify playlists. Automatic song matching, playlist generator, music discovery tool.",
     url: "https://youtubetospot.com",
-    siteName: "Spotmix Playlist Creator",
+    siteName: "Spotmix - Free Spotify Playlist Creator",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Spotmix Playlist Creator",
+        alt: "Spotmix - Create Spotify Playlists from Facebook Posts",
       },
     ],
     locale: "en_US",
@@ -66,11 +113,12 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
+    title: "Spotmix - Create Spotify Playlists from Facebook Posts | Free Playlist Creator",
     description:
-      "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
+      "Create Spotify playlists from your Facebook posts instantly! Free tool to convert Facebook shared YouTube videos into Spotify playlists. Automatic song matching, playlist generator.",
     images: ["/og-image.jpg"],
-    creator: "@youtubetospot",
+    creator: "@spotmixapp",
+    site: "@spotmixapp",
   },
   robots: {
     index: true,
@@ -87,6 +135,10 @@ export const metadata = {
     google: "your-google-verification-code",
     yandex: "your-yandex-verification-code",
     yahoo: "your-yahoo-verification-code",
+  },
+  other: {
+    "msapplication-TileColor": "#1DB954",
+    "theme-color": "#1DB954",
   },
     generator: 'v0.app'
 }
