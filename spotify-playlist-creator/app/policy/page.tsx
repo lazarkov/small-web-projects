@@ -36,6 +36,19 @@ export default function PolicyPage() {
         </section>
 
         <section className="mb-6">
+          <h2 className="text-2xl font-semibold mb-2">Data Deletion</h2>
+          <p>
+            If you want to delete your local browser data or request complete account deletion, you can visit our data
+            deletion page or contact us directly.
+          </p>
+          <div className="mt-4">
+            <Button asChild variant="outline" className="mr-4 bg-transparent">
+              <Link href="/data-deletion">Delete My Data</Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">Contact Us</h2>
           <p>
             If you have any questions about our data handling practices or need assistance, please contact us at:

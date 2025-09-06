@@ -62,6 +62,9 @@ export function Footer() {
               <Link href="/terms-of-service" className="block text-black hover:underline transition-colors text-sm">
                 Terms of Service
               </Link>
+              <Link href="/data-deletion" className="block text-black hover:underline transition-colors text-sm">
+                Delete My Data
+              </Link>
             </div>
           </div>
         </div>
