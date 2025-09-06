@@ -153,16 +153,16 @@ export default function DataDeletionPage() {
                   <strong>Email us at:</strong>
                 </p>
                 <a
-                  href="mailto:support@yourdomain.com?subject=Data Deletion Request - Spotmix"
+                  href="mailto:admin@spotmix.me?subject=Data Deletion Request - Spotmix"
                   className="text-blue-600 hover:text-blue-800 underline font-medium"
                 >
-                  support@yourdomain.com
+                  admin@spotmix.me
                 </a>
                 <p className="text-xs text-gray-500 mt-2">Please include "Data Deletion Request" in the subject line</p>
               </div>
 
               <Button asChild variant="outline" className="w-full bg-transparent">
-                <a href="mailto:support@yourdomain.com?subject=Data Deletion Request - Spotmix">
+                <a href="mailto:admin@spotmix.me?subject=Data Deletion Request - Spotmix">
                   <Mail className="mr-2 h-4 w-4" />
                   Contact Support
                 </a>

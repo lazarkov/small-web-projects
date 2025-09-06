@@ -62,8 +62,8 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-2xl font-semibold mb-2">7. Contact Us</h2>
           <p>
             If you have questions about this Privacy Policy or our data handling practices, please contact us at{" "}
-            <a href="mailto:youremail@example.com" className="text-blue-600 underline">
-              youremail@example.com
+            <a href="mailto:admin@spotmix.me" className="text-blue-600 underline">
+              admin@spotmix.me
             </a>
             .
           </p>
