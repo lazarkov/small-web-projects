@@ -5,12 +5,12 @@ export default function PolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 flex flex-col items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full">
-        <h1 className="text-3xl font-bold mb-6 text-center">YouTube to Spotify Playlist Creator - Data Policy</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">Spotmix Playlist Creator - Data Policy</h1>
 
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">About Our Service</h2>
           <p>
-            The YouTube to Spotify Playlist Creator is a web application that allows users to create Spotify playlists
+            The Spotmix Playlist Creator is a web application that allows users to create Spotify playlists
             from their Facebook-shared YouTube videos. We prioritize user privacy and data protection in our service.
           </p>
         </section>
@@ -28,7 +28,7 @@ export default function PolicyPage() {
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">Data Deletion</h2>
           <p>
-            To comply with privacy regulations, users of YouTube to Spotify Playlist Creator can easily manage their
+            To comply with privacy regulations, users of Spotmix Playlist Creator can easily manage their
             data:
           </p>
           <ol className="list-decimal list-inside mt-2">

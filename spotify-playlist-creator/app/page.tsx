@@ -388,7 +388,7 @@ async function createSpotifyPlaylist(accessToken: string, playlistName: string, 
       },
       body: JSON.stringify({
         name: playlistName,
-        description: "Created with YouTube to Spotify Playlist Creator",
+        description: "Created with Spotmix Playlist Creator",
         public: false,
       }),
     })
@@ -894,7 +894,7 @@ export default function Home() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "YouTube to Spotify Playlist Creator",
+    name: "Spotmix Playlist Creator",
     description:
       "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
     url: "https://youtubetospot.com",
@@ -914,7 +914,7 @@ export default function Home() {
     },
     creator: {
       "@type": "Organization",
-      name: "YouTube to Spotify Converter",
+      name: "Spotmix Converter",
       url: "https://youtubetospot.com",
     },
     featureList: [
@@ -934,7 +934,7 @@ export default function Home() {
     inLanguage: "en-US",
     copyrightHolder: {
       "@type": "Organization",
-      name: "YouTube to Spotify Converter",
+      name: "Spotmix Converter",
     },
     license: "https://youtubetospot.com/terms-of-service",
   }
@@ -943,7 +943,7 @@ export default function Home() {
     <div className={`min-h-screen flex flex-col transition-all duration-1000 ${stepBackgrounds[currentStep]}`}>
       <SEOHead
         structuredData={structuredData}
-        title="YouTube to Spotify Playlist Creator - Convert Facebook Videos to Playlists"
+        title="Spotmix Playlist Creator - Convert Facebook Videos to Playlists"
         description="Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching."
       />
       {/* Header */}
@@ -953,7 +953,7 @@ export default function Home() {
             <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
               <Music className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-black">YouTube to Spotify</h1>
+            <h1 className="text-xl font-bold text-black">Spotmix</h1>
           </div>
 
           {session && (

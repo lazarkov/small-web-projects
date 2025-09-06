@@ -10,9 +10,9 @@ interface SEOHeadProps {
 }
 
 export function SEOHead({
-  title = "YouTube to Spotify Playlist Creator - Convert Facebook Shared Videos to Spotify Playlists",
+  title = "Spotmix Playlist Creator - Convert Facebook Shared Videos to Spotify Playlists",
   description = "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
-  keywords = "youtube to spotify, facebook to spotify, playlist creator, convert youtube playlist, spotify playlist generator, facebook music, youtube music converter, social media playlist, music playlist tool, spotify automation, youtube converter, facebook videos to spotify, music discovery, playlist maker, spotify tools, youtube playlist converter, social music, music streaming, playlist generator free, convert music playlist",
+  keywords = "Spotmix, facebook to spotify, playlist creator, convert youtube playlist, spotify playlist generator, facebook music, youtube music converter, social media playlist, music playlist tool, spotify automation, youtube converter, facebook videos to spotify, music discovery, playlist maker, spotify tools, youtube playlist converter, social music, music streaming, playlist generator free, convert music playlist",
   canonicalUrl = "https://youtubetospot.com",
   ogImage = "/og-image.jpg",
   structuredData,
@@ -20,7 +20,7 @@ export function SEOHead({
   const jsonLd = structuredData || {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "YouTube to Spotify Playlist Creator",
+    name: "Spotmix Playlist Creator",
     description: description,
     url: canonicalUrl,
     applicationCategory: "MusicApplication",
@@ -32,7 +32,7 @@ export function SEOHead({
     },
     creator: {
       "@type": "Organization",
-      name: "YouTube to Spotify Converter",
+      name: "Spotmix Converter",
       url: canonicalUrl,
     },
     featureList: [
@@ -53,8 +53,8 @@ export function SEOHead({
       <meta name="keywords" content={keywords} />
       <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
       <meta name="language" content="English" />
-      <meta name="author" content="YouTube to Spotify Converter" />
-      <meta name="copyright" content="YouTube to Spotify Converter" />
+      <meta name="author" content="Spotmix Converter" />
+      <meta name="copyright" content="Spotmix Converter" />
       <meta name="rating" content="General" />
       <meta name="distribution" content="Global" />
       <meta name="revisit-after" content="1 days" />
@@ -70,7 +70,7 @@ export function SEOHead({
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta property="og:site_name" content="YouTube to Spotify Playlist Creator" />
+      <meta property="og:site_name" content="Spotmix Playlist Creator" />
       <meta property="og:locale" content="en_US" />
 
       {/* Twitter */}
@@ -87,8 +87,8 @@ export function SEOHead({
       <meta name="msapplication-TileColor" content="#1DB954" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      <meta name="apple-mobile-web-app-title" content="YouTube to Spotify" />
-      <meta name="application-name" content="YouTube to Spotify" />
+      <meta name="apple-mobile-web-app-title" content="Spotmix" />
+      <meta name="application-name" content="Spotmix" />
       <meta name="mobile-web-app-capable" content="yes" />
 
       {/* Geo Tags */}

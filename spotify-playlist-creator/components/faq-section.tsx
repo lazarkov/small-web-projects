@@ -10,12 +10,12 @@ const faqs = [
       "Simply connect your Facebook account, and our tool will automatically scan your posts for YouTube video shares. Then connect Spotify, and we'll create a playlist with matching songs found on Spotify.",
   },
   {
-    question: "Is the YouTube to Spotify playlist creator free?",
+    question: "Is the Spotmix playlist creator free?",
     answer:
-      "Yes! Our YouTube to Spotify converter is completely free to use. You can create unlimited playlists from your Facebook shared YouTube videos without any cost.",
+      "Yes! Our Spotmix converter is completely free to use. You can create unlimited playlists from your Facebook shared YouTube videos without any cost.",
   },
   {
-    question: "How accurate is the song matching from YouTube to Spotify?",
+    question: "How accurate is the song matching from Spotmix?",
     answer:
       "Our advanced algorithm achieves 90%+ accuracy in matching YouTube videos to Spotify songs. We clean video titles and use similarity matching to find the best matches.",
   },
@@ -42,7 +42,7 @@ const faqs = [
   {
     question: "Can I use this tool on mobile devices?",
     answer:
-      "Yes! Our YouTube to Spotify playlist creator is fully responsive and works on all devices including smartphones, tablets, and desktop computers.",
+      "Yes! Our Spotmix playlist creator is fully responsive and works on all devices including smartphones, tablets, and desktop computers.",
   },
   {
     question: "What if a YouTube video doesn't have a match on Spotify?",

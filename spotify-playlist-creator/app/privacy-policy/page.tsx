@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">1. Introduction</h2>
           <p>
-            This Privacy Policy explains how YouTube to Spotify Playlist Creator ("we", "our", or "us") handles your personal information when you use our service.
+            This Privacy Policy explains how Spotmix Playlist Creator ("we", "our", or "us") handles your personal information when you use our service.
           </p>
         </section>
 

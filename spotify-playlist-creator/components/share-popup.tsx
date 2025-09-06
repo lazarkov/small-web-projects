@@ -16,7 +16,7 @@ export function SharePopup({ playlistId, playlistName, onClose }: SharePopupProp
   const [copied, setCopied] = useState(false)
 
   const playlistUrl = `https://open.spotify.com/playlist/${playlistId}`
-  const shareMessage = `Check out my playlist "${playlistName}" that I created with YouTube to Spotify!`
+  const shareMessage = `Check out my playlist "${playlistName}" that I created with Spotmix!`
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(playlistUrl)

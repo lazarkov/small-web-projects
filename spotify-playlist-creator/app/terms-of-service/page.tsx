@@ -10,7 +10,7 @@ export default function TermsOfServicePage() {
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">1. Acceptance of Terms</h2>
           <p>
-            By using the YouTube to Spotify Playlist Creator, you agree to these Terms of Service and our Privacy
+            By using the Spotmix Playlist Creator, you agree to these Terms of Service and our Privacy
             Policy.
           </p>
         </section>
@@ -31,7 +31,7 @@ export default function TermsOfServicePage() {
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">4. Intellectual Property</h2>
           <p>
-            All content and functionality on this service are the exclusive property of YouTube to Spotify Playlist
+            All content and functionality on this service are the exclusive property of Spotmix Playlist
             Creator and its licensors.
           </p>
         </section>

@@ -8,13 +8,13 @@ const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const metadata = {
   title: {
-    default: "YouTube to Spotify Playlist Creator - Convert Facebook Videos to Playlists",
-    template: "%s | YouTube to Spotify Converter",
+    default: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
+    template: "%s | Spotmix Converter",
   },
   description:
     "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
   keywords: [
-    "youtube to spotify",
+    "spotmix",
     "facebook to spotify",
     "playlist creator",
     "convert youtube playlist",
@@ -35,9 +35,9 @@ export const metadata = {
     "playlist generator free",
     "convert music playlist",
   ].join(", "),
-  authors: [{ name: "YouTube to Spotify Converter" }],
-  creator: "YouTube to Spotify Converter",
-  publisher: "YouTube to Spotify Converter",
+  authors: [{ name: "Spotmix Converter" }],
+  creator: "Spotmix Converter",
+  publisher: "Spotmix Converter",
   formatDetection: {
     email: false,
     address: false,
@@ -48,17 +48,17 @@ export const metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "YouTube to Spotify Playlist Creator - Convert Facebook Videos to Playlists",
+    title: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
     description:
       "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
     url: "https://youtubetospot.com",
-    siteName: "YouTube to Spotify Playlist Creator",
+    siteName: "Spotmix Playlist Creator",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "YouTube to Spotify Playlist Creator",
+        alt: "Spotmix Playlist Creator",
       },
     ],
     locale: "en_US",
@@ -66,7 +66,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "YouTube to Spotify Playlist Creator - Convert Facebook Videos to Playlists",
+    title: "Spotmix Playlist Creator - Convert Facebook Videos to Playlists",
     description:
       "Free tool to convert your Facebook shared YouTube videos into Spotify playlists instantly. Create playlists from your social media music shares with 90%+ accuracy matching.",
     images: ["/og-image.jpg"],
