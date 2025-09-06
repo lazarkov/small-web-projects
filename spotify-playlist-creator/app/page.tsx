@@ -15,7 +15,7 @@ import {
   CheckCircle,
   X,
   Facebook,
-  AirplayIcon as Spotify,
+  SproutIcon as Spotify,
   ArrowDown,
   Copy,
   Twitter,

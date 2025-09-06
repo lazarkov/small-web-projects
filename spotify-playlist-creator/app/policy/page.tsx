@@ -10,8 +10,8 @@ export default function PolicyPage() {
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">About Our Service</h2>
           <p>
-            The Spotmix Playlist Creator is a web application that allows users to create Spotify playlists
-            from their Facebook-shared YouTube videos. We prioritize user privacy and data protection in our service.
+            The Spotmix Playlist Creator is a web application that allows users to create Spotify playlists from their
+            Facebook-shared YouTube videos. We prioritize user privacy and data protection in our service.
           </p>
         </section>
 
@@ -27,10 +27,7 @@ export default function PolicyPage() {
 
         <section className="mb-6">
           <h2 className="text-2xl font-semibold mb-2">Data Deletion</h2>
-          <p>
-            To comply with privacy regulations, users of Spotmix Playlist Creator can easily manage their
-            data:
-          </p>
+          <p>To comply with privacy regulations, users of Spotmix Playlist Creator can easily manage their data:</p>
           <ol className="list-decimal list-inside mt-2">
             <li>No manual deletion is necessary as we don't store your data.</li>
             <li>To remove any local browser data, clear your browser cache and local storage.</li>

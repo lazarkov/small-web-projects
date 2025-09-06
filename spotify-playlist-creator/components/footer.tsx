@@ -70,9 +70,9 @@ export function Footer() {
         <div className="mt-8 pt-4 border-t border-black border-opacity-20">
           <div className="text-xs text-black opacity-60 text-center">
             <p className="mb-2">
-              <strong>Popular searches:</strong> Spotmix converter, facebook music to spotify, playlist
-              creator, convert youtube playlist, spotify playlist generator, social media music, youtube music
-              converter, facebook videos to spotify, music discovery tool, playlist maker
+              <strong>Popular searches:</strong> Spotmix converter, facebook music to spotify, playlist creator, convert
+              youtube playlist, spotify playlist generator, social media music, youtube music converter, facebook videos
+              to spotify, music discovery tool, playlist maker
             </p>
           </div>
         </div>
