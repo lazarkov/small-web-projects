@@ -242,7 +242,7 @@ async function fetchFacebookYouTubeVideos(
   onProgress?: (current: number, total: number) => void,
 ): Promise<Video[]> {
   let allVideos: Video[] = []
-  let nextPageUrl = `https://graph.facebook.com/v12.0/me/feed?fields=attachments{title,url}&limit=200`
+  let nextPageUrl = `https://graph.facebook.com/me/feed?fields=attachments{title,url}&limit=200`
   let totalProcessed = 0
 
   while (nextPageUrl) {
