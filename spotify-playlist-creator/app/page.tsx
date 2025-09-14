@@ -1043,7 +1043,7 @@ export default function Home() {
                   <div className="mt-8 space-y-4">
                     <div className="text-center">
                       <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
-                      <GoogleAds adSlot="1234567890" className="max-w-md mx-auto" />
+                      <GoogleAds adSlot="5093306626" className="max-w-md mx-auto" />
                     </div>
                   </div>
 

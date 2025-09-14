@@ -16,7 +16,7 @@ export function GoogleAds({ adSlot, adFormat = "auto", fullWidthResponsive = tru
       if (!window.adsbygoogle) {
         const script = document.createElement("script")
         script.async = true
-        script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
+        script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2969430121109957"
         script.crossOrigin = "anonymous"
         document.head.appendChild(script)
       }
@@ -32,7 +32,7 @@ export function GoogleAds({ adSlot, adFormat = "auto", fullWidthResponsive = tru
       <ins
         className="adsbygoogle"
         style={{ display: "block" }}
-        data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+        data-ad-client="ca-pub-2969430121109957"
         data-ad-slot={adSlot}
         data-ad-format={adFormat}
         data-full-width-responsive={fullWidthResponsive.toString()}
