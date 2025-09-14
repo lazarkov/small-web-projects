@@ -11,7 +11,7 @@ declare global {
 }
 
 // Replace with your actual Google Analytics Measurement ID
-const GA_MEASUREMENT_ID = "G-XXXXXXXXXX"
+const GA_MEASUREMENT_ID = "G-VX3Q7TMZ2X"
 
 export function GoogleAnalytics() {
   const pathname = usePathname()
