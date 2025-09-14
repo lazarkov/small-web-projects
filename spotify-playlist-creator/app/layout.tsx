@@ -3,6 +3,8 @@ import "./globals.css"
 import { Inter } from "next/font/google"
 import { Providers } from "./providers"
 import { SEOHead } from "@/components/seo-head"
+import { GoogleAnalytics } from "@/components/google-analytics"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -152,7 +154,10 @@ export default function RootLayout({
     <html lang="en">
       <SEOHead />
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+          <Providers>{children}</Providers>
+        </Suspense>
       </body>
     </html>
   )

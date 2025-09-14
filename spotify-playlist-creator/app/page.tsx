@@ -9,6 +9,14 @@ import { GoogleAds } from "@/components/google-ads"
 import { PayPalSupport } from "@/components/paypal-support"
 import { SEOHead } from "@/components/seo-head"
 import {
+  trackFacebookConnect,
+  trackSpotifyConnect,
+  trackVideosFetched,
+  trackSongsMatched,
+  trackPlaylistCreation,
+  trackPlaylistShared,
+} from "@/components/google-analytics"
+import {
   Loader2,
   Music,
   RefreshCw,
@@ -558,6 +566,9 @@ export default function Home() {
         setYoutubeVideos(videos)
         localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(videos))
 
+        // Track videos fetched
+        trackVideosFetched(videos.length)
+
         // Schedule Spotify connection after the current execution context
         if (session?.provider === "facebook") {
           setIsConnectingSpotify(true)
@@ -615,6 +626,9 @@ export default function Home() {
 
   useEffect(() => {
     if (session?.provider === "facebook" && !hasStoredPlaylist) {
+      // Track Facebook connection
+      trackFacebookConnect()
+
       // Add the condition here
       setCurrentProgress(25)
       setCurrentSteps((prev) => {
@@ -652,6 +666,10 @@ export default function Home() {
     onSuccess: (data) => {
       setSpotifySongs(data.songs)
       setYoutubeVideos(data.updatedVideos)
+
+      // Track songs matched
+      const matchedCount = data.updatedVideos.filter((v) => v.songFound).length
+      trackSongsMatched(matchedCount, data.updatedVideos.length)
 
       // Store both videos and songs in localStorage
       localStorage.setItem(STORAGE_KEY_VIDEOS, JSON.stringify(data.updatedVideos))
@@ -710,6 +728,9 @@ export default function Home() {
         totalVideos: youtubeVideos.length,
       }
 
+      // Track playlist creation
+      trackPlaylistCreation(data.name, spotifySongs.length, youtubeVideos.length)
+
       // Store playlist info in localStorage
       localStorage.setItem(STORAGE_KEY_PLAYLIST, JSON.stringify(playlistInfo))
 
@@ -756,6 +777,9 @@ export default function Home() {
   // Separate effect for handling Spotify session
   useEffect(() => {
     if (session?.provider === "spotify" && !hasStoredPlaylist) {
+      // Track Spotify connection
+      trackSpotifyConnect()
+
       // Add the condition here
       setIsConnectingSpotify(false) // Stop showing loading spinner
       setCurrentSteps((prev) => {
@@ -870,16 +894,19 @@ export default function Home() {
   }, [spotifySongs.length, youtubeVideos])
 
   const handleShareFacebook = () => {
+    trackPlaylistShared("facebook")
     const url = encodeURIComponent(playlistUrl)
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank")
   }
 
   const handleShareTwitter = () => {
+    trackPlaylistShared("twitter")
     const text = encodeURIComponent(`Check out my new Spotify playlist: ${createdPlaylistName} ${playlistUrl}`)
     window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank")
   }
 
   const handleShareLinkedIn = () => {
+    trackPlaylistShared("linkedin")
     const url = encodeURIComponent(playlistUrl)
     const title = encodeURIComponent(createdPlaylistName)
     const summary = encodeURIComponent("Check out my new Spotify playlist!")
@@ -887,6 +914,7 @@ export default function Home() {
   }
 
   const handleCopyToClipboard = () => {
+    trackPlaylistShared("clipboard")
     navigator.clipboard.writeText(playlistUrl)
     alert("Playlist URL copied to clipboard!")
   }
@@ -1043,7 +1071,7 @@ export default function Home() {
                   <div className="mt-8 space-y-4">
                     <div className="text-center">
                       <p className="text-sm text-black opacity-60 mb-4">Advertisement</p>
-                      <GoogleAds adSlot="5093306626" className="max-w-md mx-auto" />
+                      <GoogleAds adSlot="1234567890" className="max-w-md mx-auto" />
                     </div>
                   </div>
 

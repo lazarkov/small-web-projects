@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Heart, Coffee, Gift, X } from "lucide-react"
+import { trackDonation } from "@/components/google-analytics"
 
 interface PayPalSupportProps {
   onClose?: () => void
@@ -17,6 +18,9 @@ export function PayPalSupport({ onClose, showCloseButton = false }: PayPalSuppor
   const predefinedAmounts = [3, 5, 10, 25]
 
   const handlePayPalDonation = (amount: number) => {
+    // Track donation in Google Analytics
+    trackDonation(amount)
+
     // PayPal donation URL using your paypal.me link - opens in new tab to prevent navigation
     const paypalUrl = `https://paypal.me/kovaciclazar/${amount}`
     window.open(paypalUrl, "_blank", "noopener,noreferrer")
@@ -25,6 +29,9 @@ export function PayPalSupport({ onClose, showCloseButton = false }: PayPalSuppor
   const handleCustomDonation = () => {
     const amount = Number.parseFloat(customAmount)
     if (amount && amount > 0) {
+      // Track donation in Google Analytics
+      trackDonation(amount)
+
       // Open PayPal in new tab to prevent navigation
       const paypalUrl = `https://paypal.me/kovaciclazar/${amount}`
       window.open(paypalUrl, "_blank", "noopener,noreferrer")

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Trash2, AlertTriangle, CheckCircle, Mail } from "lucide-react"
+import { trackDataDeletion } from "@/components/google-analytics"
 
 export default function DataDeletionPage() {
   const [isDeleted, setIsDeleted] = useState(false)
@@ -29,6 +30,9 @@ export default function DataDeletionPage() {
     }
 
     keysToRemove.forEach((key) => localStorage.removeItem(key))
+
+    // Track data deletion in Google Analytics
+    trackDataDeletion()
 
     setIsDeleted(true)
     setShowConfirmation(false)
