@@ -1,8 +1,13 @@
 # Blueprint layer test status
 
-Scratchpad for live blueprint runs against the `hermes/` and `openclaw/` layer
-folders in this repo. Record what you actually saw — exact marker lines, exact
-error text. Leave rows unfilled rather than guessing.
+Scratchpad for live blueprint runs against the `agent-examples/hermes/` and
+`agent-examples/openclaw/` layer folders in this repo. Record what you actually
+saw — exact marker lines, exact error text. Leave rows unfilled rather than
+guessing.
+
+Point the folder browser at one of the two leaf folders, never at
+`agent-examples/` itself — the layer only copies the folder you pick, and the
+parent holds both definitions plus this file.
 
 ## Ground rules
 
@@ -18,13 +23,14 @@ error text. Leave rows unfilled rather than guessing.
 
 The full matrix in `docs/BLUEPRINT_LIVE_TESTING.md` is six creates: a
 `generated/` folder on each engine, plus each declared folder. This repo covers
-the two declared folders; add `generated/` rows if you add that folder.
+the two declared folders; add rows for `agent-examples/generated/` if you add
+that folder.
 
 | # | Folder | Engine picked in pane | Engine actually got | Agent id | Result |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `hermes/` | Hermes | | | |
-| 2 | `openclaw/` | OpenClaw | | | |
-| 3 | `openclaw/` | Hermes (expect `brain:` override → OpenClaw) | | | |
+| 1 | `agent-examples/hermes/` | Hermes | | | |
+| 2 | `agent-examples/openclaw/` | OpenClaw | | | |
+| 3 | `agent-examples/openclaw/` | Hermes (expect `brain:` override → OpenClaw) | | | |
 
 ### Per-run checklist
 
@@ -57,8 +63,8 @@ _Fill in._
 
 ## Open questions carried in from setup
 
-1. The `## Setup` block in `openclaw/agent-spaces.md` was reconstructed from
-   prose, not copied from
+1. The `## Setup` block in `agent-examples/openclaw/agent-spaces.md` was
+   reconstructed from prose, not copied from
    `headless-service/src/blueprints/definitions/openclaw.md` (not present in this
    repo). Verify verbatim.
 2. Requesty model id spelling: `vertex/gemini-3-8-flash` vs

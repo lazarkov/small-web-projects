@@ -49,7 +49,7 @@ frontmatter:
 layer:
   repo: <owner>/<repo>
   ref: <sha>
-  path: hermes
+  path: agent-examples/hermes
   install: npm
 ```
 
